@@ -28,3 +28,22 @@ Instructions:
 * the name of the input file can also be a parameter of main.py, like "python main.py --dataset_file_name=simple_example.dat"
 
 * by default, the output file will appear in this folder with the name "generated_tras.txt"
+
+
+
+Lokale ændringer
+- Fjernet fcntl da den kun fungerer på linux og heller ikke blev brugt(så vidt jeg kunne se)
+- Ændret np.int til int, da np.int er deprecated
+- Fixet sted hvor de skriver nt i stedet np
+- Tilføjet lille script for at generere sample test data
+
+Lokaler instrukser
+kør følgende for at lave environment:
+conda env create -f environment_working.yml
+conda activate db_code_py310
+
+for at køre
+python main.py
+
+for at genere data
+python generate_sample_data.py
