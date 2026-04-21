@@ -43,6 +43,7 @@ conda env create -f environment_working.yml
 conda activate db_code_py310
 
 for at køre
+set KMP_DUPLICATE_LIB_OK=TRUE
 python main.py
 
 for at genere data
