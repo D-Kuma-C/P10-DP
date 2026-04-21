@@ -1,5 +1,8 @@
 import folium
 
+BEIJING = [39.9, 116]
+
+
 m = folium.Map(location=[39.9, 116], zoom_start=11)
 
 def plot_file(file_path, color="blue", max_traj=5000000000):
@@ -29,6 +32,6 @@ def plot_file(file_path, color="blue", max_traj=5000000000):
     print("Trajectory count: ", count)
     
 
-plot_file(r"C:\Git\P10-DP\t-drive\output2.dat", color="blue")
+plot_file(r"C:\Git\P10-DP\PrivTrace-main\generated_tras.txt", color="blue")
 
-m.save(f"index.html")
+m.save(f"index_porto_gen.html")

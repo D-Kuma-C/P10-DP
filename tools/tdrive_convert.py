@@ -12,14 +12,18 @@ import math
 
 # Parameters
 START_FILE_INDEX = 0
-END_FILE_INDEX = 10
+END_FILE_INDEX = 100
 
 INCLUDE_TIME_IN_OUTPUT = False
 
 # Minimun amount of points, max time and distance between points in trajectories
 MIN_POINTS = 3
 MAX_TIME = 15 * 60
-MAX_DISTANCE = 0.05
+MAX_DISTANCE = 0.05 # 5 kilometer
+MIN_DISTANCE = 0.0001 # 10 m
+
+
+MAX_SPEED = 40
 
 START_DATE = datetime.datetime.strptime("2008-02-02", "%Y-%m-%d")
 END_DATE = datetime.datetime.strptime("2008-02-09", "%Y-%m-%d")
@@ -95,17 +99,33 @@ def load_data(file, traj_id):
         if lon == 0.0 or lat == 0.0:
             continue
         
-        if not (MIN_LON <= lon <= MAX_LON and MIN_LAT <= lat <= MAX_LAT):
-            continue
+       # if not (MIN_LON <= lon <= MAX_LON and MIN_LAT <= lat <= MAX_LAT):
+        #    continue
         
         current_point = (lon, lat)
 
-        if (prev_point is not None and measure_distance(prev_point, current_point)) or (prev_timestamp is not None and (timestamp - prev_timestamp).total_seconds() > MAX_TIME):
+        if prev_point and is_noise(prev_point, current_point):
+            continue
+        
+        if prev_point == current_point:
+            continue
+
+        
+        if prev_timestamp and (timestamp - prev_timestamp).total_seconds() > MAX_TIME:
             if len(trajectory) >= MIN_POINTS:
                 write_trajectory(trajectory, traj_id)
                 traj_id += 1
 
             trajectory = []
+            prev_point = None
+            prev_timestamp = None
+            continue
+
+
+        
+        if prev_point and prev_timestamp:
+            if is_unrealistic_speed(prev_point, current_point, prev_timestamp, timestamp):
+                continue
         
         if (INCLUDE_TIME_IN_OUTPUT):
             trajectory.append(f"{lon},{lat},{timestamp}")
@@ -121,8 +141,22 @@ def load_data(file, traj_id):
 
     return traj_id
         
+def is_noise(p1, p2):
+    return math.hypot(p1[0] - p2[0], p1[1] - p2[1]) < MIN_DISTANCE
 
-    
+def is_unrealistic_speed(p1, p2, t1, t2):
+    dt = (t2 - t1).total_seconds()
+    if dt <= 0:
+        return True
+
+    dx = p1[0] - p2[0]
+    dy = p1[1] - p2[1]
+
+    distance = math.hypot(dx, dy) * 111000
+
+    speed = distance / dt
+
+    return speed > MAX_SPEED   
 
 
 def measure_distance(p1, p2):

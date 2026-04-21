@@ -36,13 +36,14 @@ def plot_trajectories(trajectories, title):
     plt.grid()
     plt.show()
 
-original_file = r"C:\Git\P10-DP\t-drive\gps_output_p-3_d-0.05_t-15min_f-10_start-20080202_end-20080209.dat"
-cartesian_file = r"C:\Git\P10-DP\t-drive\tdrive_cartesian.dat"
-#generated_file = "generated_tras.txt"
+original_file = r"C:\Git\P10-DP\PrivTrace-main\datasets\porto_lines-1000_p-3_d-0.05_s-40_t-15min_start-20130107_end-20140630.dat"
+#cartesian_file = r"C:\Git\P10-DP\t-drive\tdrive_cartesian.dat"
+generated_file = r"C:\Git\P10-DP\PrivTrace-main\generated_tras.txt"
 
 original = load_trajectories(original_file)
-cartesian = load_trajectories(cartesian_file)
-#generated = load_trajectories(generated_file)
+#cartesian = load_trajectories(cartesian_file)
+generated = load_trajectories(generated_file)
 
 plot_trajectories(original, "Original")
-plot_trajectories(cartesian, "Cartesian")
+#plot_trajectories(cartesian, "Cartesian")
+plot_trajectories(generated, "Generated")

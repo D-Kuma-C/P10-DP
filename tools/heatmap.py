@@ -20,7 +20,7 @@ def plot_heatmap(file_path):
     plt.show()
 
 # Original
-plot_heatmap(r"C:\Git\P10-DP\t-drive\tdrive_1.dat")
+plot_heatmap(r"C:\Git\P10-DP\PrivTrace-main\datasets\porto_lines-1000_p-3_d-0.05_s-40_t-15min_start-20130107_end-20140630.dat")
 
 # Generated
-plot_heatmap(r"C:\Git\P10-DP\t-drive\tdrive_result1.txt")
+plot_heatmap(r"C:\Git\P10-DP\PrivTrace-main\generated_tras.txt")
