@@ -4,7 +4,7 @@ import csv
 import json
 
 START_LINE = 0
-END_LINE = 1000
+END_LINE = 10000
 
 START_DATE = datetime.datetime.strptime("2013-01-07", "%Y-%m-%d")
 END_DATE = datetime.datetime.strptime("2014-06-30", "%Y-%m-%d")

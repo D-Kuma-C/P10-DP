@@ -12,7 +12,7 @@ class ParSetter:
         parser = argparse.ArgumentParser()
         parser.add_argument('--dataset_file_name', type=str, default=fname.dataset_file_name)
         parser.add_argument('--subdividing_inner_parameter', type=float, default=200)
-        parser.add_argument('--total_epsilon', type=float, default=2.0)
+        parser.add_argument('--total_epsilon', type=float, default=1.0)
         # regularly, partition solution is suggested to be np.array([0.2, 0.52, 0.28]))
         parser.add_argument('--epsilon_partition', type=np.ndarray, default=np.array([0.2, 0.4, 0.4]))
         # this parameter indicates how many trajectories to generate
