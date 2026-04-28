@@ -4,7 +4,7 @@ import csv
 import json
 
 START_LINE = 0
-END_LINE = 1000
+END_LINE = 100000
 
 START_DATE = datetime.datetime.strptime("2013-01-07", "%Y-%m-%d")
 END_DATE = datetime.datetime.strptime("2014-06-30", "%Y-%m-%d")
@@ -21,10 +21,11 @@ POINT_INTERVAL = 15 # 15 seconds between points
 MAX_SPEED = 40
 
 time_tag = "_time" if INCLUDE_TIME else ""
+line_tag = f"_lines-{END_LINE-START_LINE}" if START_LINE and END_LINE else "_lines-all"
 
 output_name = (
     f"{time_tag}"
-    f"_lines-{END_LINE-START_LINE}"
+    f"{line_tag}"
     f"_p-{MIN_POINTS}"
     f"_d-{MAX_DISTANCE}"
     f"_s-{MAX_SPEED}"
@@ -34,8 +35,8 @@ output_name = (
     f".dat"
 )
 
-INPUT_FILE = r"C:\p10-data\Porto\train.csv"
-OUTPUT_FILE = r"C:\Git\P10-DP\Porto\porto" + output_name
+INPUT_FILE = r"C:\P10-Datasets\Porto\train.csv"
+OUTPUT_FILE = r"C:\Users\Trailblaze\Documents\GitHub\P10-DP\Porto\porto" + output_name
 
 # Helper functions
 
@@ -78,7 +79,7 @@ def load_data():
 
             if row_index < START_LINE:
                 continue
-            if row_index >= END_LINE:
+            if END_LINE and (row_index >= END_LINE):
                 break
 
             print("Converting row:", row_index)
