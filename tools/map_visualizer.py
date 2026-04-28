@@ -3,7 +3,7 @@ import folium
 BEIJING = [39.9, 116]
 PORTO = [41.15, -8.62]
 
-m = folium.Map(location=PORTO, zoom_start=11, tiles="CartoDB positron")
+m = folium.Map(location=BEIJING, zoom_start=11, tiles="CartoDB positron")
 
 def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
     with open(file_path) as f:
@@ -32,6 +32,6 @@ def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
     print("Trajectory count: ", count)
     
 
-plot_file(r"C:\Git\P10-DP\PrivTrace-main\generated_tras.txt", color="blue")
+plot_file(r"C:\Git\P10-DP\geolife\test.dat", color="blue")
 
-m.save(f"index_porto_gen.html")
+m.save(f"testing.html")
