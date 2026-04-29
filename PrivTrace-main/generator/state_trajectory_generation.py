@@ -11,9 +11,17 @@ class StateGeneration:
     def generate_tra(self, mar_mo):
         cc1 = self.cc
         generator1 = Generator(self.cc)
+
+        print("[DEBUG] Loading Markov Model into Generator")
         generator1.load_generator(mar_mo)
+
+
         number = cc1.trajectory_number_to_generate
+        print(f"[DEBUG] Attempting to generate {number} trajectories...")
+
         usable_tr_list = generator1.generate_many(number, neighbor_check=False)
+
+        print(f"[DEBUG] Successfully generated trajectories.")
         print('state trajectories got')
         real_tr_list = self.trans_many_usable_trajectories(usable_tr_list, mar_mo.grid)
         return real_tr_list

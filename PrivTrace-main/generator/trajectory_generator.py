@@ -363,6 +363,9 @@ class Generator:
 
     def generate_many(self, number, neighbor_check=False):
         trajectory_list = []
+        attempts = 0
+
+        print(f"[*] Starting generation of {number} trajectories...")
         if neighbor_check:
             trajectory_number_already = 0
             while trajectory_number_already < number:
@@ -370,6 +373,13 @@ class Generator:
                 if trajectory is not False:
                     trajectory_list.append(trajectory)
                     trajectory_number_already = trajectory_number_already + 1
+
+                    if len(trajectory_list) % 100 == 0:
+                        print(f"[+] Progress: {len(trajectory_list)}/{number} (Success rate: {(len(trajectory_list)/attempts)*100:.2f}%)")
+                
+                if attempts % 1000 == 0 and len(trajectory_list) == 0:
+                    print(f"[!] Warning: 1000 attempts made and 0 valid trajectories found. Check Epsilon/Grid settings.")
+        
         else:
             i = 1
             print('begin generating')

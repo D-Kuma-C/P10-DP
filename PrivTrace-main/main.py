@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import config.folder_and_file_names as fname
 from discretization.get_discretization import DisData
 from primarkov.build_markov_model import ModelBuilder
@@ -21,12 +24,12 @@ if __name__ == "__main__":
     print("Loading and preparing trajectory set...")
     data_preparer = DataPreparer(par)
     trajectory_set = data_preparer.get_trajectory_set()
-    print(f"Loaded {len(trajectory_set)} trajectories")
+    print(f"Loaded trajectories")
     
     print("Starting Discretization")
     disdata1 = DisData(pc)
     grid = disdata1.get_discrete_data(trajectory_set)
-    print(f"Discretization complete. Grid cells: {len(grid)}")
+    print(f"Discretization complete")
 
     print("Building Markov Model...")
     mb1 = ModelBuilder(pc)
