@@ -13,7 +13,7 @@ def plot_heatmap(file_path):
                         lons.append(lon)
                         lats.append(lat)
 
-    plt.hexbin(lons, lats, gridsize=60)
+    plt.hexbin(lons, lats, gridsize=20, vmin=0, vmax=600)
     plt.colorbar(label="Density")
     plt.xlabel("Longitude")
     plt.ylabel("Latitude")

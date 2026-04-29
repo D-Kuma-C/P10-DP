@@ -82,11 +82,17 @@ class MarkovModel:
         trajectory_list = trajectory_set.trajectory_list
         print('begin calculating matrix')
         print(datetime.datetime.now())
+
+        counter = 0
         for trajectory1 in trajectory_list:
+            if (counter % 10 == 0):
+                print(f"{counter} out of {len(trajectory_list)} trajectories calculated")
             not_out_of_usable = not trajectory1.has_not_usable_index
             if not_out_of_usable:
                 markov_matrix1 = self.trajectory_markov_probability(trajectory1)
                 markov_matrix += markov_matrix1
+            
+            counter += 1
         print('calculating ends')
         print(datetime.datetime.now())
         self.real_markov_matrix = markov_matrix
@@ -199,7 +205,15 @@ class MarkovModel:
             index_of_gp = gp.this_state
             order1_end_value = self.noisy_markov_matrix[index_of_gp, -1]
             order2_end_value = gp.give_total_ends_value()
-            gp.multiply_ends(order1_end_value / order2_end_value * 1.5)
+
+            # LOCAL CHANGES TO PREVENT DIVIDE BY ZERO AND NaN ERRORS
+            if (order2_end_value > 0):
+                multiplier = (order1_end_value / order2_end_value) * 1.5
+
+                if not np.isnan(multiplier) and not np.isinf(multiplier):
+                    gp.multiply_ends(multiplier)
+            else:
+                pass
 
     #
     def start_end_trip_distribution_calibration(self):
@@ -337,12 +351,24 @@ class MarkovModel:
 
     #
     def model_filtering(self, trajectory_set1: TrajectorySet, grid: Grid):
+        print(f"[{datetime.datetime.now()}] Step 1: Trip Distribution Calibration...")
         self.start_end_trip_distribution_calibration()
+        
+        print(f"[{datetime.datetime.now()}] Step 2: Giving Level 1 thresholds...")
         self.give_level1_length_thresholds()
+        
+        print(f"[{datetime.datetime.now()}] Step 3: Getting sensitive states...")
         self.get_sensitive_state()
+        
+        print(f"[{datetime.datetime.now()}] Step 4: Setting up guideposts...")
         self.set_up_guideposts(grid)
+        
+        print(f"[{datetime.datetime.now()}] Step 5: Order-2 info collection (Trajectory Loop)...")
         self.give_guidepost_order2_info(trajectory_set1)
+        
+        print(f"[{datetime.datetime.now()}] Step 6: Noise & Consistency...")
         self.add_noise_to_guidepost()
         self.order1_and_2_end_consistency()
+        print(f"[{datetime.datetime.now()}] Filtering complete.")
         pass
 

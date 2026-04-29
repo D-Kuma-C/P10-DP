@@ -1,11 +1,11 @@
 import folium
 
 BEIJING = [39.9, 116]
+PORTO = [41.15, -8.62]
 
+m = folium.Map(location=BEIJING, zoom_start=11, tiles="CartoDB positron")
 
-m = folium.Map(location=[39.9, 116], zoom_start=11)
-
-def plot_file(file_path, color="blue", max_traj=5000000000):
+def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
     with open(file_path) as f:
         lines = f.readlines()
 
@@ -20,7 +20,7 @@ def plot_file(file_path, color="blue", max_traj=5000000000):
                 folium.PolyLine(traj, color=color, weight=2, opacity=0.6).add_to(m)
                 traj = []
                 count += 1
-                if count > max_traj:
+                if max_traj and (count > max_traj):
                     break
         elif line.startswith(">0:"):
             points = line[3:].split(";")
@@ -32,6 +32,6 @@ def plot_file(file_path, color="blue", max_traj=5000000000):
     print("Trajectory count: ", count)
     
 
-plot_file(r"C:\Git\P10-DP\PrivTrace-main\generated_tras.txt", color="blue")
+plot_file(r"C:\Git\P10-DP\geolife\test.dat", color="blue")
 
-m.save(f"index_porto_gen.html")
+m.save(f"testing.html")

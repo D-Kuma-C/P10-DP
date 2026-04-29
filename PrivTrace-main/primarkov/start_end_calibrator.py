@@ -96,9 +96,17 @@ class StartEndCalibrator:
     def calculate_shortest_path_length(self, grid: Grid):
         start_state_number = self.non_zero_start_indices.size
         end_state_number = self.non_zero_end_indices.size
+        total_ops = start_state_number * end_state_number
         self.inner_indices_shortest_path_lengths = np.zeros((start_state_number, end_state_number)) - 1
         self.inner_indices_shortest_large_cell_paths_lengths = np.zeros((start_state_number, end_state_number)) - 1
+
+        print(f"[DEBUG] Calculating all-pairs shortest paths for {start_state_number}x{end_state_number} matrix ({total_ops} operations)...")
+        
         for inner_start_index in range(start_state_number):
+
+            if inner_start_index % 10 == 0: # Print every 10 rows
+                 print(f"  [PROGRESS] Row {inner_start_index}/{start_state_number} ({(inner_start_index*end_state_number/total_ops)*100:.1f}%)")
+
             for inner_end_index in range(end_state_number):
                 usable_start_index = self.non_zero_start_indices[inner_start_index]
                 usable_end_index = self.non_zero_end_indices[inner_end_index]
@@ -375,18 +383,26 @@ class StartEndCalibrator:
 
     #
     def distribution_calibration(self, grid: Grid, noisy_matrix, large_trans_indicator):
+        print("[DEBUG] Setting up Calibrator...")
+
         cc = self.cc
         self.setup_calibrator(grid, noisy_matrix, large_trans_indicator)
+
+        print("[DEBUG] Attempting CVXPY optimization (Trial 1)...")
         divided_distribution = self.distribution_optimization_cvxpy2()
         iter_turns = 0
         while (divided_distribution is None) and (iter_turns < 10):
+            print(f"  [RETRY] Optimization returned None. Retrying turn {iter_turns}...")
             divided_distribution = self.distribution_optimization_cvxpy2()
             iter_turns = iter_turns + 1
         loose_multiplier = 2
         while divided_distribution is None:
+            print(f"  [CRITICAL] Still None. Loosening constraints (multiplier {loose_multiplier})...")
             divided_distribution = self.distribution_optimization_cvxpy2(loose_parameter=loose_multiplier ** 2)
             loose_multiplier = loose_multiplier + 1
         non_length_divided_distribution = self.optimized_non_length_divided_distribution(divided_distribution)
+
+        print("[DEBUG] Calibration successful.")
         return non_length_divided_distribution
 
     #

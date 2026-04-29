@@ -15,5 +15,9 @@ class ModelBuilder:
         return mo1
 
     def filter_model(self, trajectory_set1, grid, mo1):
+        print("[DEBUG] Starting model_filtering (Noise injection and pruning)...")
+
         mo1.model_filtering(trajectory_set1, grid)
+
+        print("[DEBUG] model_filtering complete.")
         return mo1

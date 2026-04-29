@@ -1,3 +1,6 @@
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import config.folder_and_file_names as fname
 from discretization.get_discretization import DisData
 from primarkov.build_markov_model import ModelBuilder
@@ -12,23 +15,40 @@ import datetime
 
 if __name__ == "__main__":
     writer = DataWriter()
-    print('begin all')
-    print(datetime.datetime.now())
+    start_time = datetime.datetime.now()
+    print(f"Process started at {start_time}")
+
     par = ParSetter().set_up_args()
     pc = ParameterCarrier(par)
+    
+    print("Loading and preparing trajectory set...")
     data_preparer = DataPreparer(par)
     trajectory_set = data_preparer.get_trajectory_set()
+    print(f"Loaded trajectories")
+    
+    print("Starting Discretization")
     disdata1 = DisData(pc)
     grid = disdata1.get_discrete_data(trajectory_set)
+    print(f"Discretization complete")
+
+    print("Building Markov Model...")
     mb1 = ModelBuilder(pc)
     mo1 = mb1.build_model(grid, trajectory_set)
     mb1 = ModelBuilder(pc)
     mo1 = mb1.filter_model(trajectory_set, grid, mo1)
+
+
+    print("Generating synthetic state trajectories..")
     sg1 = StateGeneration(pc)
     st_tra_list = sg1.generate_tra(mo1)
+
+    print("Translating states to real-world coordinates...")
     rlt1 = RealLocationTranslator(pc)
     real_tra_list = rlt1.translate_trajectories(grid, st_tra_list)
+
+    print(f"Saving results to {fname.result_file_name}")
     writer.save_trajectory_data_in_list_to_file(real_tra_list, fname.result_file_name)
-    print('end all')
-    print(datetime.datetime.now())
+    
+    end_time = datetime.datetime.now()
+    print(f"Process finishes at {end_time}")
     pass
