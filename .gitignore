@@ -416,6 +416,11 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+/t-drive
+/Porto
+/PrivTrace-main/tools/__pycache__
+/PrivTrace-main/tools
+/geolife
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template
