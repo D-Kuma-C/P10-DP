@@ -604,3 +604,4 @@ fabric.properties
 # .idea
 /Privacy_attack/.idea
 /.idea
+*.class
