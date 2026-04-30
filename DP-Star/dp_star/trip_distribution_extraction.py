@@ -11,7 +11,7 @@
 
 import numpy as np
 
-from utils import ProgressBar
+from utils._progressbar import ProgressBar
 
 
 def trip_distribution(trajs: list, n_grid: int, _epsilon: float) -> np.ndarray:
