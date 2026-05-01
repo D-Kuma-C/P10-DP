@@ -2,7 +2,6 @@ import pandas as pd
 
 from Attack_model.reidentification_probability import reidentification_prob
 from ConvertToFrames import *
-from ParserToBayesian import *
 from Attack_model.bayesian_attack import bayesian_attack_score_only
 from geometry import Grid
 from Parsing import parse_dat_trajectories, parse_dat_for_bayesian
@@ -55,6 +54,7 @@ from Attack_model.outlier_leakage import outlier_leakage_score_only
 #     origin_lat=projection_info["origin_lat"],
 # )
 
+print("############ Reidentification BEGIN ############")
 # Dette er for x, y
 orig = convert_dat_to_dataframe(
     "data/orig/brinkhoff.dat",
@@ -66,7 +66,7 @@ synth = convert_dat_to_dataframe(
     input_coordinates="xy",
 )
 
-print("############ Reidentification BEGIN ############")
+
 print(
     "Reidentification probability score",
     reidentification_prob(synth, orig, 3, 3),
@@ -76,6 +76,7 @@ print("############ Reidentification END ############")
 # ##########################################
 # ############ Bayesian Attack #############
 
+print("############ Bayesian Attack BEGIN ############")
 # Dette er for x,y
 orig_trajs, syn_trajs, grid_cells, grid_info, projection_info = parse_dat_for_bayesian(
     original_path="data/orig/brinkhoff.dat",
@@ -94,7 +95,7 @@ orig_trajs, syn_trajs, grid_cells, grid_info, projection_info = parse_dat_for_ba
 #     coordinate_order="lonlat",
 # )
 
-print("############ Bayesian Attack BEGIN ############")
+
 result = bayesian_attack_score_only(
     orig_trajs=orig_trajs,
     syn_trajs=syn_trajs,
@@ -128,6 +129,7 @@ print("############ Bayesian Attack END ############")
 #     origin_lat=projection_info["origin_lat"],
 # )
 
+print("############ Partial Sniffing BEGIN ############")
 # Dette er for x, y
 orig_xy = parse_dat_trajectories(
     "data/orig/brinkhoff.dat",
@@ -148,7 +150,7 @@ grid = Grid(
     max_y=25000.0,
 )
 
-print("############ Partial Sniffing BEGIN ############")
+
 result = partial_sniffing_score_only(
     orig_xy=orig_xy,
     syn_xy=syn_xy,
@@ -186,6 +188,7 @@ print("############ Partial Sniffing END ############")
 #     origin_lat=projection_info["origin_lat"],
 # )
 
+print("############ Outlier Leakage BEGIN ############")
 # Dette er for x, y
 orig_xy = parse_dat_trajectories(
     "data/orig/brinkhoff.dat",
@@ -197,7 +200,7 @@ syn_xy = parse_dat_trajectories(
     input_coordinates="xy",
 )
 
-print("############ Outlier Leakage BEGIN ############")
+
 result = outlier_leakage_score_only(
     orig_xy=orig_xy,
     syn_xy=syn_xy,
