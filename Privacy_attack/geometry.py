@@ -4,10 +4,8 @@ from dataclasses import dataclass
 from math import sqrt
 from typing import List, Tuple
 
-
 Point = Tuple[float, float]
 Trajectory = List[Point]
-
 
 @dataclass(frozen=True)
 class Cell:
@@ -19,10 +17,7 @@ class Cell:
 
     def in_cell(self, point: Point) -> bool:
         x, y = point
-        return (
-            x >= self.min_x and x <= self.max_x
-            and y >= self.min_y and y <= self.max_y
-        )
+        return x >= self.min_x and x <= self.max_x and y >= self.min_y and y <= self.max_y
 
     def __str__(self) -> str:
         return self.name
@@ -35,27 +30,22 @@ class Grid:
         self.max_x = max_x
         self.min_y = min_y
         self.max_y = max_y
-
         x_increment = (max_x - min_x) / cell_count
         y_increment = (max_y - min_y) / cell_count
-
         self.top_level_cells: List[List[Cell]] = []
-
         for i in range(cell_count):
             row: List[Cell] = []
             for j in range(cell_count):
-                row.append(
-                    Cell(
-                        min_x=min_x + x_increment * i,
-                        min_y=min_y + y_increment * j,
-                        max_x=min_x + x_increment * (i + 1),
-                        max_y=min_y + y_increment * (j + 1),
-                        name=f"{i},{j}",
-                    )
-                )
+                row.append(Cell(
+                    min_x=min_x + x_increment * i,
+                    min_y=min_y + y_increment * j,
+                    max_x=min_x + x_increment * (i + 1),
+                    max_y=min_y + y_increment * (j + 1),
+                    name=f"{i},{j}",
+                ))
             self.top_level_cells.append(row)
-
         self.cells = self.get_cells()
+
 
     def get_n(self) -> int:
         return self.cell_count
@@ -128,3 +118,9 @@ class Grid:
 
 def euclidean_dist(p1: Point, p2: Point) -> float:
     return sqrt((p1[1] - p2[1]) ** 2 + (p1[0] - p2[0]) ** 2)
+
+def get_distance_travelled(traj: Trajectory) -> float:
+    total = 0.0
+    for i in range(len(traj) - 1):
+        total += euclidean_dist(traj[i], traj[i + 1])
+    return total

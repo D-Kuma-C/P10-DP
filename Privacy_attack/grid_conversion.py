@@ -10,103 +10,51 @@ GridTrajectory = List[Cell]
 
 
 def point_to_cell(point: Point, grid: Grid) -> Cell:
-    """
-    Equivalent to GridTrajectory point-to-cell mapping.
-
-    AdaTrace behavior:
-      1. Search all cells using Cell.inCell(point).
-      2. If not found, try point shifted by -0.001 in x and y.
-      3. If still not found, use bottom-left cell.
-    """
     for cell in grid.cells:
         if cell.in_cell(point):
             return cell
-
     x, y = point
     shifted_point = (x - 0.001, y - 0.001)
-
     for cell in grid.cells:
         if cell.in_cell(shifted_point):
             return cell
-
     return grid.get_cell_matrix()[0][0]
 
 
-def convert_traj_to_grid_traj(
-    traj: Trajectory,
-    grid: Grid,
-    interp_wanted: bool = True,
-    remove_duplicates: bool = True,
-) -> GridTrajectory:
-    """
-    Equivalent to new GridTrajectory(t, grid, interpWanted).
-
-    Default behavior follows the main Java constructor:
-      - map all points to cells
-      - remove consecutive duplicate cells
-      - ensure at least two cells
-      - optionally interpolate non-adjacent cell jumps
-    """
+def convert_traj_to_grid_traj(traj: Trajectory, grid: Grid, interp_wanted: bool = True, remove_duplicates: bool = True) -> GridTrajectory:
     if len(traj) == 0:
         return []
-
     traj_cells: GridTrajectory = [point_to_cell(point, grid) for point in traj]
-
     if remove_duplicates:
         new_traj_cells: GridTrajectory = [traj_cells[0]]
-
         for i in range(1, len(traj_cells) - 1):
             if traj_cells[i] != new_traj_cells[-1]:
                 new_traj_cells.append(traj_cells[i])
-
         try:
             if traj_cells[-1] != traj_cells[-2]:
                 new_traj_cells.append(traj_cells[-1])
         except Exception:
             pass
-
         if len(new_traj_cells) == 1:
             new_traj_cells.append(traj_cells[-1])
-
         traj_cells = new_traj_cells
-
     if interp_wanted:
         final_cells: GridTrajectory = []
-
         for i in range(len(traj_cells) - 1):
             current = traj_cells[i]
             next_cell = traj_cells[i + 1]
-
             if current == next_cell or grid.are_adjacent(current, next_cell):
                 final_cells.append(current)
             else:
                 final_cells.extend(grid.give_interpolated_route(current, next_cell))
-
         final_cells.append(traj_cells[-1])
         traj_cells = final_cells
-
     return traj_cells
 
 
-def convert_all_to_grid_trajs(
-    trajs: List[Trajectory],
-    grid: Grid,
-    interp_wanted: bool = True,
-    remove_duplicates: bool = True,
-    desc="Converting trajectories to grid",
-) -> List[GridTrajectory]:
-
+def convert_all_to_grid_trajs(trajs: List[Trajectory], grid: Grid, interp_wanted: bool = True, remove_duplicates: bool = True, desc: str = "Converting trajectories to grid") -> List[GridTrajectory]:
     iterator = tqdm(trajs, total=len(trajs), desc=desc)
-
-    return [
-        convert_traj_to_grid_traj(
-            traj=traj,
-            grid=grid,
-            interp_wanted=interp_wanted,
-            remove_duplicates=remove_duplicates,
-        )
-        for traj in iterator
-    ]
+    return [convert_traj_to_grid_traj(traj=traj, grid=grid, interp_wanted=interp_wanted, remove_duplicates=remove_duplicates) for traj in iterator]
 
 
 def get_nth_densest_cell(
