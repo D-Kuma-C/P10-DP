@@ -8,37 +8,11 @@ from Parsing import parse_dat_trajectories, parse_dat_for_bayesian
 from Attack_model.partial_sniffing import partial_sniffing_score_only
 from Attack_model.outlier_leakage import outlier_leakage_score_only
 
-# orig = pd.DataFrame(
-#     [
-#         [1,1,1,1,2,2,2,2,1,1,1,1],
-#         [1,1,1,2,2,2,2,1,1,1,1,1],
-#         [2,2,2,2,3,3,3,3,2,2,2,2],
-#         [2,2,2,2,4,4,4,4,4,2,2,2],
-#         [1,1,1,1,3,3,3,3,3,3,1,1],
-#         [2,2,3,3,3,3,3,2,2,2,2,2],
-#         [2,2,2,2,2,2,4,4,4,4,4,2],
-#     ],
-#     columns=[f"1_Hour{i}" for i in range(12)]
-# ).astype(str)
-# orig['User'] = range(len(orig))
-# orig = orig.set_index('User')
-#
-#
-# synth = pd.DataFrame(
-#     [
-#         [1,1,1,1,2,2,2,2,1,1,1,1],
-#         [1,1,1,2,2,2,2,1,1,1,1,1],
-#         [2,2,2,2,3,3,3,3,2,2,2,2],
-#         [2,2,2,2,4,4,4,4,4,2,2,2],
-#         [2,2,2,2,1,1,1,1,1,2,2,2]
-#     ],
-#     columns=[f"1_Hour{i}" for i in range(12)]
-# ).astype(str)
-
 # ##########################################
 # ############ Reidentification ############
 
-# Dette er for lat, lon
+print("############ Reidentification BEGIN ############")
+# This is for lat, lon
 # orig, projection_info = convert_dat_to_dataframe(
 #     "data/orig/brinkhoff_latlon.dat",
 #     input_coordinates="latlon",
@@ -54,30 +28,38 @@ from Attack_model.outlier_leakage import outlier_leakage_score_only
 #     origin_lat=projection_info["origin_lat"],
 # )
 
-print("############ Reidentification BEGIN ############")
-# Dette er for x, y
+# This is for x, y
 orig = convert_dat_to_dataframe(
     "data/orig/brinkhoff.dat",
     input_coordinates="xy",
+    time_period_hours=24,
+    interval_minutes=15,
 )
 
 synth = convert_dat_to_dataframe(
     "data/synth/brinkhoff.dat-eps1.0-iteration1.dat",
     input_coordinates="xy",
+    time_period_hours=12,
+    interval_minutes=15,
 )
 
-
-print(
-    "Reidentification probability score",
-    reidentification_prob(synth, orig, 3, 3),
+score = reidentification_prob(
+    synthetic_data=synth,
+    original_data=orig,
+    known_locations=3,
+    number_of_test_users=40,
+    random_state=0,
+    show_progress=True,
 )
+
+print(f"Re-identification probability score: {score:.4f}")
 print("############ Reidentification END ############")
 
 # ##########################################
 # ############ Bayesian Attack #############
 
 print("############ Bayesian Attack BEGIN ############")
-# Dette er for x,y
+# This is for x,y
 orig_trajs, syn_trajs, grid_cells, grid_info, projection_info = parse_dat_for_bayesian(
     original_path="data/orig/brinkhoff.dat",
     synthetic_path="data/synth/brinkhoff.dat-eps1.0-iteration1.dat",
@@ -85,7 +67,8 @@ orig_trajs, syn_trajs, grid_cells, grid_info, projection_info = parse_dat_for_ba
     y_bins=20,
     input_coordinates="xy",
 )
-# Dette for lat, lon
+
+# This is for lat, lon
 # orig_trajs, syn_trajs, grid_cells, grid_info, projection_info = parse_dat_for_bayesian(
 #     original_path="data/orig/my_latlon.dat",
 #     synthetic_path="data/synth/my_latlon_synth.dat",
@@ -114,7 +97,8 @@ print("############ Bayesian Attack END ############")
 # ##########################################
 # ############ Partial Sniffing ############
 
-# Dette er for lat, lon
+print("############ Partial Sniffing BEGIN ############")
+# This is for lat, lon
 # orig_xy, projection_info = parse_dat_trajectories(
 #     "data/orig/brinkhoff_latlon.dat",
 #     input_coordinates="latlon",
@@ -129,8 +113,8 @@ print("############ Bayesian Attack END ############")
 #     origin_lat=projection_info["origin_lat"],
 # )
 
-print("############ Partial Sniffing BEGIN ############")
-# Dette er for x, y
+
+# This is for x, y
 orig_xy = parse_dat_trajectories(
     "data/orig/brinkhoff.dat",
     input_coordinates="xy",
@@ -173,7 +157,9 @@ print("############ Partial Sniffing END ############")
 
 # ##########################################
 # ############ Outlier Leakage ############
-# Dette er for lat, lon
+
+print("############ Outlier Leakage BEGIN ############")
+# This is for lat, lon
 # orig_xy, projection_info = parse_dat_trajectories(
 #     "data/orig/brinkhoff_latlon.dat",
 #     input_coordinates="latlon",
@@ -188,8 +174,8 @@ print("############ Partial Sniffing END ############")
 #     origin_lat=projection_info["origin_lat"],
 # )
 
-print("############ Outlier Leakage BEGIN ############")
-# Dette er for x, y
+
+# This is for x, y
 orig_xy = parse_dat_trajectories(
     "data/orig/brinkhoff.dat",
     input_coordinates="xy",

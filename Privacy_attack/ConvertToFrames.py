@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from coordinate_conversion import convert_trajectories_latlon_to_xy_meters
 
+
 def convert_dat_to_dataframe(
     path,
     input_coordinates="xy",
@@ -14,9 +15,13 @@ def convert_dat_to_dataframe(
     origin_lon=None,
     origin_lat=None,
     return_projection_info=False,
+    time_period_hours=24,
+    interval_minutes=15,
+    n_clusters=4,
+    random_state=42,
 ):
     """
-    Reads a .dat file and converts it into a discrete 12-hour Pandas DataFrame.
+    Reads a .dat file and converts it into a discrete Pandas DataFrame.
 
     input_coordinates:
         "xy"     means the file already contains x,y coordinates
@@ -25,9 +30,40 @@ def convert_dat_to_dataframe(
     coordinate_order:
         "lonlat" means each coordinate pair is lon,lat
         "latlon" means each coordinate pair is lat,lon
+
+    time_period_hours:
+        Total time period represented by each trajectory.
+        Example: 24 means one full day.
+
+    interval_minutes:
+        Time interval between bins.
+        Example: 15 means 15-minute bins.
+
+    n_clusters:
+        Number of spatial regions used by KMeans.
+
+    Example:
+        time_period_hours=24, interval_minutes=15
+        gives 96 time bins.
     """
     os.environ["LOKY_MAX_CPU_COUNT"] = "4"
     warnings.filterwarnings("ignore", category=UserWarning)
+
+    if time_period_hours <= 0:
+        raise ValueError("time_period_hours must be positive")
+
+    if interval_minutes <= 0:
+        raise ValueError("interval_minutes must be positive")
+
+    total_minutes = time_period_hours * 60
+
+    if total_minutes % interval_minutes != 0:
+        raise ValueError(
+            "time_period_hours * 60 must be divisible by interval_minutes. "
+            f"Got {total_minutes} minutes and interval {interval_minutes} minutes."
+        )
+
+    num_time_bins = int(total_minutes / interval_minutes)
 
     trajectories = []
     current_traj = []
@@ -88,13 +124,17 @@ def convert_dat_to_dataframe(
         raise ValueError("input_coordinates must be 'xy' or 'latlon'")
 
     print(f"Successfully loaded {len(trajectories)} user trajectories.")
+    print(
+        f"Using {num_time_bins} time bins "
+        f"({time_period_hours} hours, {interval_minutes}-minute intervals)."
+    )
 
     print("Finding spatial hotspots with K-Means...")
     all_coords = np.vstack(trajectories)
 
     kmeans = KMeans(
-        n_clusters=4,
-        random_state=42,
+        n_clusters=n_clusters,
+        random_state=random_state,
         n_init="auto",
     ).fit(all_coords)
 
@@ -106,8 +146,8 @@ def convert_dat_to_dataframe(
 
     final_data = []
 
-    for seq in tqdm(discrete_trajectories, desc="Binning to 12 hours"):
-        indices = np.linspace(0, len(seq) - 1, 12).astype(int)
+    for seq in tqdm(discrete_trajectories, desc=f"Binning to {num_time_bins} time bins"):
+        indices = np.linspace(0, len(seq) - 1, num_time_bins).astype(int)
         sampled_seq = [seq[i] for i in indices]
         final_data.append(sampled_seq)
 
@@ -115,7 +155,10 @@ def convert_dat_to_dataframe(
 
     df = pd.DataFrame(
         final_data,
-        columns=[f"1_Hour{i}" for i in range(12)],
+        columns=[
+            f"{interval_minutes}min_{i}"
+            for i in range(num_time_bins)
+        ],
     ).astype(str)
 
     df["User"] = range(len(df))
