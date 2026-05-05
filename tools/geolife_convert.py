@@ -3,6 +3,7 @@ import math
 import csv
 import json
 import os
+import requests
 
 START_USER_INDEX = 0
 END_USER_INDEX = 10
@@ -10,6 +11,10 @@ END_USER_INDEX = 10
 START_DATE = datetime.datetime.strptime("2007-04-01", "%Y-%m-%d")
 END_DATE = datetime.datetime.strptime("2011-11-01", "%Y-%m-%d")
 
+MAX_MATCH_POINTS = 100  # OSRM limit
+OSRM_URL = "http://localhost:5000/match/v1/driving"
+
+ENABLE_MAP_MATCHING = True
 INCLUDE_TIME = False
 
 MIN_POINTS = 3
@@ -55,18 +60,200 @@ def compute_speed(p1, p2, dt):
 def is_noise(p1, p2):
     return distance(p1, p2) < MIN_DISTANCE
 
-def write_trajectory(f, trajectory, traj_id):
+def write_trajectory(f, traj, traj_id):
     f.write(f"#{traj_id}\n")
-    f.write(">0:" + ";".join(trajectory) + ";\n")
 
-def is_meaningful_trip(trajectory):
-    if not trajectory: return False
-    start = trajectory[0].split(',')
-    end = trajectory[-1].split(',')
-    # Calculate distance between first and last point
-    total_displacement = distance((float(start[0]), float(start[1])), 
-                                  (float(end[0]), float(end[1])))
-    return total_displacement > MIN_TRAJECTORY_DISTANCE
+    parts = []
+    for item in traj:
+        if INCLUDE_TIME:
+            lon, lat, t = item
+            parts.append(f"{lon},{lat},{t.strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            lon, lat = item
+            parts.append(f"{lon},{lat}")
+
+    f.write(">0:" + ";".join(parts) + ";\n")
+
+def is_meaningful_trip(points):
+    if not points:
+        return False
+
+    start = points[0]
+    end = points[-1]
+
+    return distance(start, end) > MIN_TRAJECTORY_DISTANCE
+
+
+def chunk_trajectory(traj, size=MAX_MATCH_POINTS):
+    for i in range(0, len(traj), size):
+        yield traj[i:i+size]
+
+
+def finalize_trajectory(out, points, times, traj_id):
+    if len(points) < MIN_POINTS:
+        return traj_id
+    
+    if not is_meaningful_trip(points):
+        return traj_id
+    
+    if ENABLE_MAP_MATCHING:
+        matched = process_with_map_matching(
+            points,
+            times if INCLUDE_TIME else None
+        )
+    else:
+        if INCLUDE_TIME:
+            matched = [(lon, lat, t) for (lon, lat), t in zip(points, times)]
+        else:
+            matched = points
+    
+    if matched:
+        write_trajectory(out, matched, traj_id)
+        return traj_id + 1
+    
+    return traj_id
+        
+
+
+# MAP MATCHING FUNCTIONS
+
+# Map match raw data
+def map_match_osrm(points, timestamps=None):
+    if len(points) < 2:
+        return None
+
+    coords = ";".join([f"{lon},{lat}" for lon, lat in points])
+
+    try:
+        response = requests.get(
+                OSRM_URL + "/" + coords,
+                params={
+                    "geometries": "geojson",
+                    "overview": "full",
+                    "steps": "false",
+                    "tidy": "true",
+                    "radiuses": ";".join(["50"] * len(points))
+                },
+                timeout=5
+            )
+        data = response.json()
+    except:
+        return None
+
+    if "matchings" not in data or not data["matchings"]:
+        return None
+
+    matching = data["matchings"][0]
+    
+    geometry = matching["geometry"]["coordinates"]
+    
+    tracepoints = data["tracepoints"]
+
+    if any(tp is None for tp in tracepoints):
+        return None
+
+    if any(tp is None for tp in tracepoints):
+        return None
+
+    return geometry, tracepoints
+
+
+# Assign timestamps to points and interpolate timestamps for new points
+def interpolate_timestamps(geometry, tracepoints, original_times):
+    result_times = [None] * len(geometry)
+
+    # Map each valid tracepoint to its timestamp
+    time_idx = 0
+    for tp in tracepoints:
+        if tp is None:
+            continue
+        result_times[tp["waypoint_index"]] = original_times[time_idx]
+        time_idx += 1
+
+    # Interpolate missing timestamps
+    last_known = None
+
+    for i in range(len(result_times)):
+        if result_times[i] is not None:
+            if last_known is not None:
+                t1 = result_times[last_known]
+                t2 = result_times[i]
+                gap = i - last_known
+
+                for j in range(1, gap):
+                    ratio = j / gap
+                    result_times[last_known + j] = t1 + (t2 - t1) * ratio
+
+            last_known = i
+
+    # Include that last valid timestamp
+    last_valid = None
+    for i in range(len(result_times)):
+        if result_times[i] is None:
+            if last_valid is not None:
+                result_times[i] = last_valid
+        else:
+            last_valid = result_times[i]
+
+    return result_times
+
+
+# Divide dataset into chunks and process each chunk
+def process_with_map_matching(points, timestamps=None):
+    all_geometry = []
+    all_times = []
+
+    pairs = list(zip(points, timestamps)) if timestamps else [(p, None) for p in points]
+
+    chunks = [pairs[i:i+MAX_MATCH_POINTS] for i in range(0, len(pairs), MAX_MATCH_POINTS)]
+
+    for chunk in chunks:
+        pts = [p for p, _ in chunk]
+        ts  = [t for _, t in chunk] if timestamps else None
+        result = map_match_osrm(pts, ts)
+
+        if not result:
+            continue
+
+        geometry, tracepoints = result
+
+        
+
+        # Interpolate timestamps if needed
+        if ts:
+            new_times = interpolate_timestamps(
+                geometry,
+                tracepoints,
+                ts
+            )
+        else:
+            new_times = [None] * len(geometry)
+
+        # Avoid duplicate joins between chunks
+        if all_geometry and geometry:
+            geometry = geometry[1:]
+            new_times = new_times[1:]
+
+        all_geometry.extend(geometry)
+        
+        all_times.extend(new_times)
+
+    if not all_geometry:
+        return None
+
+    # Final structure
+    result = []
+    for i in range(len(all_geometry)):
+        lon, lat = all_geometry[i]
+        if timestamps:
+            result.append((lon, lat, all_times[i]))
+        else:
+            result.append((lon, lat))
+
+    return result
+
+
+
 
 # Main
 
@@ -105,7 +292,8 @@ def load_data():
 
                 lines = lines[6:]
 
-                trajectory = []
+                trajectory_points = []
+                trajectory_times = []
                 prev_point = None
                 prev_time = None
 
@@ -139,25 +327,34 @@ def load_data():
                         if dt > 0 and compute_speed(prev_point, current_point, dt) > MAX_SPEED:
                             continue
 
-                    if (prev_time and (timestamp - prev_time).total_seconds() > MAX_TIME) or (prev_point and (distance(prev_point, current_point) > MAX_DISTANCE)):
-                        if len(trajectory) >= MIN_POINTS:
-                            if (is_meaningful_trip(trajectory)):
-                                write_trajectory(out, trajectory, traj_id)
-                                traj_id += 1
-                        trajectory = []
+                    if (prev_time and (timestamp - prev_time).total_seconds() > MAX_TIME) or \
+                        (prev_point and (distance(prev_point, current_point) > MAX_DISTANCE)):
+                        
+                        traj_id = finalize_trajectory(
+                            out,
+                            trajectory_points,
+                            trajectory_times,
+                            traj_id
+                        )
+
+                        trajectory_points = [(lon, lat)]
+                        trajectory_times = [timestamp]
 
                     if INCLUDE_TIME:
-                        trajectory.append(f"{lon},{lat},{timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+                        trajectory_points.append((lon, lat))
+                        trajectory_times.append(timestamp)
                     else:
-                        trajectory.append(f"{lon},{lat}")
+                        trajectory_points.append((lon, lat))
 
                     prev_point = current_point
                     prev_time = timestamp
 
-                if len(trajectory) >= MIN_POINTS:
-                    if (is_meaningful_trip(trajectory)):
-                        write_trajectory(out, trajectory, traj_id)
-                        traj_id += 1
+                traj_id = finalize_trajectory(
+                    out,
+                    trajectory_points,
+                    trajectory_times,
+                    traj_id
+                )
                 
     print("Finished converting, saved to:", OUTPUT_FILE)
 
