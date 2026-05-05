@@ -3,7 +3,7 @@ import folium
 BEIJING = [39.9, 116]
 PORTO = [41.15, -8.62]
 
-m = folium.Map(location=BEIJING, zoom_start=11, tiles="CartoDB positron")
+m = folium.Map(location=PORTO, zoom_start=11, tiles="CartoDB positron")
 
 def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
     with open(file_path) as f:

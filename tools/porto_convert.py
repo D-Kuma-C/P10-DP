@@ -13,12 +13,12 @@ MAX_MATCH_POINTS = 100  # OSRM limit
 # Parameters
 
 START_LINE = 0
-END_LINE = 100
+END_LINE = 20000
 
 START_DATE = datetime.datetime.strptime("2013-01-07", "%Y-%m-%d")
 END_DATE = datetime.datetime.strptime("2014-06-30", "%Y-%m-%d")
 
-INCLUDE_TIME = False
+INCLUDE_TIME = True
 
 MIN_POINTS = 3
 MAX_TIME = 15 * 60
@@ -112,7 +112,7 @@ def chunk_trajectory(traj, size=MAX_MATCH_POINTS):
         yield traj[i:i+size]
 
 
-# Map match data
+# Map match raw data
 def map_match_osrm(points, timestamps=None):
     if len(points) < 2:
         return None
@@ -137,23 +137,31 @@ def map_match_osrm(points, timestamps=None):
     if "matchings" not in data or not data["matchings"]:
         return None
 
-    # Use first matching
     matching = data["matchings"][0]
     geometry = matching["geometry"]["coordinates"]
     tracepoints = data["tracepoints"]
 
     return geometry, tracepoints
 
+
+# Assign timestamps to points and interpolate timestamps for new points
 def interpolate_timestamps(geometry, tracepoints, original_times):
     result_times = [None] * len(geometry)
 
     # Map each valid tracepoint to its timestamp
-    for tp, t in zip(tracepoints, original_times):
+    for i, tp in enumerate(tracepoints):
         if tp is None:
             continue
 
+        if i >= len(original_times):
+            continue
+
         geom_idx = tp["waypoint_index"]
-        result_times[geom_idx] = t
+
+        if geom_idx < 0 or geom_idx >= len(result_times):
+            continue
+
+        result_times[geom_idx] = original_times[i]
 
     # Interpolate missing timestamps
     last_known = None
@@ -171,6 +179,7 @@ def interpolate_timestamps(geometry, tracepoints, original_times):
 
             last_known = i
 
+    # Include that last valid timestamp
     last_valid = None
     for i in range(len(result_times)):
         if result_times[i] is None:
@@ -181,7 +190,8 @@ def interpolate_timestamps(geometry, tracepoints, original_times):
 
     return result_times
 
-#
+
+# Divide dataset into chunks and process each chunk
 def process_with_map_matching(points, timestamps=None):
     all_geometry = []
     all_times = []
