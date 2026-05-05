@@ -4,9 +4,9 @@ from math import inf
 from typing import Any, Dict, List, Optional
 from tqdm import tqdm
 
-from Privacy_attack.geometry import Cell, Grid, Point, Trajectory
-from Privacy_attack.grid_conversion import convert_all_to_grid_trajs, get_nth_densest_cell
-from Privacy_attack.trajectory_metrics import calc_intersection_count, calculate_dtw
+from geometry import Cell, Grid, Point, Trajectory
+from grid_conversion import convert_all_to_grid_trajs, get_nth_densest_cell
+from trajectory_metrics import calc_intersection_count, calculate_dtw
 
 
 def get_sniffed_points(traj: Trajectory, sniff_zone: Cell) -> List[Point]:

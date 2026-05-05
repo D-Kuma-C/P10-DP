@@ -4,9 +4,9 @@ from math import sqrt
 from typing import Any, Dict, List, Optional
 from tqdm import tqdm
 
-from Privacy_attack.geometry import Grid, Trajectory, euclidean_dist, get_distance_travelled
-from Privacy_attack.grid_conversion import convert_all_to_grid_trajs
-from Privacy_attack.outlier_utils import (
+from geometry import Grid, Trajectory, euclidean_dist, get_distance_travelled
+from grid_conversion import convert_all_to_grid_trajs
+from outlier_utils import (
     average_knn_length_scores,
     average_knn_point_scores,
     end_point,
@@ -14,7 +14,7 @@ from Privacy_attack.outlier_utils import (
     get_outlier_indices,
     start_point,
 )
-from Privacy_attack.trajectory_metrics import calculate_dtw
+from trajectory_metrics import calculate_dtw
 
 
 def _progress(iterable, show_progress: bool, desc: str, total: Optional[int] = None, leave: bool = True):
