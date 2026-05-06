@@ -1,0 +1,11 @@
+How to run AdaTrace:
+
+1. Install java SDK
+2. Run "mkdir build" in root
+3. cd build
+4. Run "Get-ChildItem -Recurse ../src -Filter *.java | 
+	ForEach-Object { '"' + $_.FullName + '"' } | 
+	Out-File -Encoding ascii sources.txt"
+5. After run "javac -cp "../commons-math3-3.4.1.jar;../kd.jar" (Get-ChildItem -Recurse ../src -Filter *.java).FullName"
+6. cd ..
+7. Run "java --% -Duser.language=en -Duser.region=US -cp src;commons-math3-3.4.1.jar;kd.jar Main"
