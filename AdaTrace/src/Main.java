@@ -1006,7 +1006,7 @@ public class Main {
 	public static void main(String[] args) throws Exception {
 		
 		// PART 0 - PARAMETERS
-		String inputFilename = "brinkhoff.dat";  // file name/path for actual trajectory database
+		String inputFilename = "porto_20k.dat";  // file name/path for actual trajectory database
 		double totalEpsilon = 1.0;  // total privacy budget (epsilon)
 		boolean attacksON = false;  // want to defend against attacks? (Section 3.3)
 		// End of Part 0
