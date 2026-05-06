@@ -1,74 +1,82 @@
-import os
-import pandas as pd
-from itertools import combinations
-
-from trajectory import Trajectory
-from measures.lors import LORS
-from measures.lcrs import LCRS
-from parser import load_dat_trajectories
 from tqdm import tqdm
 
-def build_dummy_trajectories():
-    return [
-        Trajectory(traj_id=1, segment_ids=[1, 2]),
-        Trajectory(traj_id=2, segment_ids=[2, 3]),
-        Trajectory(traj_id=3, segment_ids=[1, 2, 3]),
-    ]
+from cli_args import parse_args
+from parser import load_dat_trajectories
+from network_modes import build_network_with_osmnx, load_prebuilt_network
+from experiment import DistributionExperiment
 
-
-def run_measure(name, measure, trajectories, output_dir="../data/output"):
-    os.makedirs(output_dir, exist_ok=True)
-
-    traj_ids = [t.traj_id for t in trajectories]
-
-    # Create square similarity matrix
-    matrix = pd.DataFrame(
-        index=traj_ids,
-        columns=traj_ids,
-        dtype=float
-    )
-
-    total_pairs = (len(trajectories) * (len(trajectories) + 1)) // 2
-    progress = tqdm(total=total_pairs, desc=f"Running {name}")
-
-    for i in range(len(trajectories)):
-        t1 = trajectories[i]
-
-        for j in range(i, len(trajectories)):
-            t2 = trajectories[j]
-
-            if i == j:
-                score = 0.0
-            else:
-                score = measure.compute(t1, t2)
-
-            # Fill upper triangle
-            matrix.loc[t1.traj_id, t2.traj_id] = score
-
-            # Fill symmetric lower triangle
-            matrix.loc[t2.traj_id, t1.traj_id] = score
-
-            progress.update(1)
-
-    progress.close()
-
-    output_path = f"{output_dir}/{name}_scores.csv"
-    matrix.to_csv(output_path)
-
-    print(f"Saved pairwise score matrix: {output_path}")
+from measures.netedr import NetEDR
+from measures.neterp import NetERP
+from measures.tp import TP
+from measures.lors import LORS
 
 
 if __name__ == "__main__":
+    args = parse_args()
 
-    input_file = "../data/input/brinkhoff.dat"
+    stages = tqdm(total=5, desc="Pipeline stages")
 
-    if os.path.exists(input_file):
-        print(f"Loading trajectories from: {input_file}")
-        trajectories = load_dat_trajectories(input_file)
-        print(f"Loaded {len(trajectories)} trajectories")
+    original = load_dat_trajectories(args.original, dataset="original")
+    synthetic = load_dat_trajectories(args.synthetic, dataset="synthetic")
+    stages.update(1)
+
+    all_trajectories = original + synthetic
+
+    if args.network_mode == "osmnx":
+        if args.place is None:
+            raise ValueError("--place is required when --network-mode osmnx")
+
+        roadmap, all_trajectories = build_network_with_osmnx(
+            trajectories=all_trajectories,
+            place=args.place,
+            output_dir=args.network_output_dir,
+        )
+
     else:
-        print("No .dat file found in data/input/. Using dummy trajectories instead.")
-        trajectories = build_dummy_trajectories()
+        if args.nodes is None or args.edges is None or args.segments is None:
+            raise ValueError(
+                "--nodes, --edges, and --segments are required when --network-mode prebuilt"
+            )
 
-    run_measure("LORS", LORS, trajectories)
-    run_measure("LCRS", LCRS, trajectories)
+        roadmap, all_trajectories = load_prebuilt_network(
+            trajectories=all_trajectories,
+            nodes_file=args.nodes,
+            edges_file=args.edges,
+            segments_file=args.segments,
+        )
+
+    stages.update(1)
+
+    original = [t for t in all_trajectories if t.dataset == "original"]
+    synthetic = [t for t in all_trajectories if t.dataset == "synthetic"]
+
+    measures = {
+        "NetEDR": NetEDR(match_threshold=args.netedr_threshold),
+        "NetERP": NetERP(gap_cost=args.neterp_gap_cost),
+        "TP": TP(),
+        "LORS": LORS(),
+    }
+
+    stages.update(1)
+
+    experiment = DistributionExperiment(
+        original_trajectories=original,
+        synthetic_trajectories=synthetic,
+        epsilon=args.epsilon,
+        dp_model=args.dp_model,
+        trajectory_count_label=args.trajectory_count_label,
+        dataset_name=args.dataset_name,
+        measures=measures,
+        roadmap=roadmap,
+        output_dir=args.output_dir,
+        max_pairs_per_comparison=args.max_pairs,
+        random_seed=args.random_seed,
+    )
+
+    stages.update(1)
+
+    experiment.run_distribution_comparisons()
+    experiment.run_stratified_original_synthetic()
+
+    stages.update(1)
+    stages.close()

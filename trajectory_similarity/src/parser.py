@@ -1,76 +1,50 @@
-import pandas as pd
-from collections import defaultdict
+from trajectory import Point, Trajectory
 
-from trajectory import Trajectory, Point
 
-def load_segment_trajectories(file_path: str):
-    df = pd.read_csv(file_path)
-
-    grouped = defaultdict(list)
-
-    for _, row in df.iterrows():
-        traj_id = int(row["trajectory_id"])
-        seg_id = int(row["segment_id"])
-        grouped[traj_id].append(seg_id)
-
+def load_dat_trajectories(file_path: str, dataset: str):
     trajectories = []
-    for traj_id, segment_ids in grouped.items():
-        trajectories.append(
-            Trajectory(
-                traj_id=traj_id,
-                segment_ids=segment_ids,
-            )
-        )
-
-    return trajectories
-
-def load_dat_trajectories(file_path: str):
-    trajectories = []
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip()]
-
     current_traj_id = None
 
-    for line in lines:
-        if line.startswith("#"):
-            current_traj_id = int(line.replace("#", "").replace(":", ""))
-
-        elif line.startswith(">"):
-            if current_traj_id is None:
+    with open(file_path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line:
                 continue
 
-            point_part = line.split(":", 1)[1]
-            raw_points = point_part.split(";")
+            if line.startswith("#"):
+                current_traj_id = int(line.replace("#", "").replace(":", ""))
+                continue
 
-            points = []
-            for raw_point in raw_points:
-                raw_point = raw_point.strip()
-                if not raw_point:
+            if line.startswith(">"):
+                if current_traj_id is None:
                     continue
 
-                try:
-                    x_str, y_str = raw_point.split(",")
-                    x = float(x_str)
-                    y = float(y_str)
-                except ValueError:
-                    continue
+                point_text = line.split(":", 1)[1]
+                raw_points = point_text.split(";")
 
-                points.append(
-                    Point(
-                        osm_id=None,
-                        y=y,
-                        x=x,
-                        timestamp=None,
+                points = []
+                for raw_point in raw_points:
+                    raw_point = raw_point.strip()
+                    if not raw_point:
+                        continue
+
+                    parts = [p.strip() for p in raw_point.split(",")]
+
+                    if len(parts) < 2:
+                        continue
+
+                    lon = float(parts[0])
+                    lat = float(parts[1])
+                    timestamp = parts[2] if len(parts) >= 3 else None
+
+                    points.append(Point(lon=lon, lat=lat, timestamp=timestamp))
+
+                trajectories.append(
+                    Trajectory(
+                        traj_id=current_traj_id,
+                        dataset=dataset,
+                        points=points,
                     )
                 )
-
-            trajectories.append(
-                Trajectory(
-                    traj_id=current_traj_id,
-                    points=points,
-                    segment_ids=list(range(len(points)))
-                )
-            )
 
     return trajectories

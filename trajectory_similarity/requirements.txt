@@ -1,6 +1,9 @@
-pandas
 numpy
-networkx
-scipy
-joblib
+pandas
 tqdm
+networkx
+osmnx
+geopandas
+shapely
+scipy
+matplotlib
