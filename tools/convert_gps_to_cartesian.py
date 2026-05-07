@@ -4,7 +4,7 @@ input_file = r"C:\Users\test\Desktop\Uni\P10-DP\trajectory_similarity\data\origi
 output_file = r"C:\Users\test\Desktop\Uni\P10-DP\AdaTrace\porto_20k.dat"
 
 # WGS84 lon/lat -> Web Mercator x/y
-transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+transformer = Transformer.from_crs("EPSG:4326", "EPSG:32629", always_xy=True)
 
 with open(input_file, "r", encoding="utf-8") as f:
     lines = f.readlines()

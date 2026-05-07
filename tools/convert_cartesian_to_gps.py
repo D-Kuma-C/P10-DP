@@ -6,7 +6,7 @@ output_file = r"C:\Users\test\Desktop\Uni\P10-DP\trajectory_similarity\data\synt
 # IMPORTANT:
 # Use the same CRS as the GPS -> x,y conversion.
 # For Porto, we used UTM zone 29N.
-transformer = Transformer.from_crs("EPSG:32629", "EPSG:4326", always_xy=True)
+transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
 
 # IMPORTANT:
 # Paste the exact min_x and min_y printed by your GPS -> x,y conversion script.
