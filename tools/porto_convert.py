@@ -4,40 +4,54 @@ import csv
 import json
 import requests
 
+with open("../config.json") as f:
+    CONFIG = json.load(f)
+
 # MAP MATCHING Params
 
-ENABLE_MAP_MATCHING = True
-OSRM_URL = "http://localhost:5000/match/v1/driving"
-MAX_MATCH_POINTS = 100  # OSRM limit
+ENABLE_MAP_MATCHING = CONFIG["map_matching"]["enable"]
+OSRM_URL = CONFIG["map_matching"]["OSRM_url"]
+MAX_MATCH_POINTS = CONFIG["map_matching"]["max_match_points"]
 
 # Parameters
 
-START_LINE = 0
-END_LINE = 20000
+START_LINE = CONFIG["processing_parameters"]["start_index"]
+END_LINE = CONFIG["processing_parameters"]["end_index"]
 
+INCLUDE_TIME = CONFIG["processing_parameters"]["include_time"]
+
+MIN_LON = CONFIG["dataset"]["porto"]["bounds"]["min_lon"]
+MAX_LON = CONFIG["dataset"]["porto"]["bounds"]["max_lon"]
+
+MIN_LAT = CONFIG["dataset"]["porto"]["bounds"]["min_lat"]
+MAX_LAT = CONFIG["dataset"]["porto"]["bounds"]["max_lat"]
+
+
+MIN_POINTS = CONFIG["processing_parameters"]["min_points"]
+MAX_TIME = CONFIG["processing_parameters"]["max_time"]
+MAX_DISTANCE = CONFIG["processing_parameters"]["max_distance"]
+MIN_DISTANCE = CONFIG["processing_parameters"]["min_distance"]
+
+MIN_TRAJECTORY_DISTANCE = CONFIG["processing_parameters"]["min_trajectory_distance"]
+
+MAX_SPEED = CONFIG["processing_parameters"]["max_speed"]
+
+# Porto specific
 START_DATE = datetime.datetime.strptime("2013-01-07", "%Y-%m-%d")
 END_DATE = datetime.datetime.strptime("2014-06-30", "%Y-%m-%d")
-
-INCLUDE_TIME = True
-
-MIN_POINTS = 3
-MAX_TIME = 15 * 60
-MAX_DISTANCE = 0.05 # 5 kilometer
-MIN_DISTANCE = 0.0001 # 10 m
-
-MIN_TRAJECTORY_DISTANCE = 0.01
-
 POINT_INTERVAL = 15 # 15 seconds between points
 
-MAX_SPEED = 40
 
 time_tag = "_time" if INCLUDE_TIME else ""
 mapmatch_tag = "-raw" if not ENABLE_MAP_MATCHING else ""
+
+current_time = datetime.datetime.now().strftime("%m%d_%H%M%S")
 
 output_name = (
     f"{mapmatch_tag}"
     f"{time_tag}"
     f"_lines-{END_LINE-START_LINE}"
+    f"{current_time}"
     f"_p-{MIN_POINTS}"
     f"_d-{MAX_DISTANCE}"
     f"_s-{MAX_SPEED}"
@@ -47,8 +61,19 @@ output_name = (
     f".dat"
 )
 
-INPUT_FILE = r"C:\p10-data\Porto\train.csv"
-OUTPUT_FILE = r"C:\Git\P10-DP\Porto\porto" + output_name
+
+
+INPUT_FILE = CONFIG["dataset"]["porto"]["input_location"]
+OUTPUT_FILE = CONFIG["dataset"]["porto"]["output_location"] + output_name
+TRAJECTORY_SEGMENTS_FILE = CONFIG["dataset"]["porto"]["segment_file_location"] + current_time + ".csv"
+
+
+
+node_registry = {}
+edge_registry = {}
+edge_lookup = {}
+
+next_edge_id = 0
 
 
 # Helper functions
@@ -126,12 +151,14 @@ def map_match_osrm(points, timestamps=None):
                     "geometries": "geojson",
                     "overview": "full",
                     "steps": "false",
+                    "annotations": "true",
                     "radiuses": ";".join(["20"] * len(points))
                 },
                 timeout=5
             )
         data = response.json()
-    except:
+    except Exception as e:
+        print("OSRM request failed:", e)
         return None
 
     if "matchings" not in data or not data["matchings"]:
@@ -139,9 +166,11 @@ def map_match_osrm(points, timestamps=None):
 
     matching = data["matchings"][0]
     geometry = matching["geometry"]["coordinates"]
-    tracepoints = data["tracepoints"]
 
-    return geometry, tracepoints
+    tracepoints = data["tracepoints"]
+    legs = matching["legs"]
+
+    return geometry, tracepoints, legs
 
 
 # Assign timestamps to points and interpolate timestamps for new points
@@ -195,6 +224,7 @@ def interpolate_timestamps(geometry, tracepoints, original_times):
 def process_with_map_matching(points, timestamps=None):
     all_geometry = []
     all_times = []
+    all_segment_ids = []
 
     pairs = list(zip(points, timestamps)) if timestamps else [(p, None) for p in points]
 
@@ -208,9 +238,11 @@ def process_with_map_matching(points, timestamps=None):
         if not result:
             continue
 
-        geometry, tracepoints = result
+        geometry, tracepoints, legs = result
 
         
+        trajectory_edge_ids = extract_segments_from_legs(legs)
+        all_segment_ids.extend(trajectory_edge_ids)
 
         # Interpolate timestamps if needed
         if ts:
@@ -243,7 +275,81 @@ def process_with_map_matching(points, timestamps=None):
         else:
             result.append((lon, lat))
 
-    return result
+    return result, all_segment_ids
+
+def extract_segments_from_legs(legs):
+    global next_edge_id
+
+    trajectory_edge_ids = []
+
+    for leg in legs:
+
+        if "annotation" not in leg:
+            continue
+
+        annotation = leg["annotation"]
+
+        if "nodes" not in annotation:
+            continue
+
+        nodes = annotation["nodes"]
+
+        for i in range(len(nodes) - 1):
+
+            start_node = nodes[i]
+            end_node = nodes[i + 1]
+
+            edge_key = (start_node, end_node)
+
+            # Reuse existing edge
+            if edge_key in edge_lookup:
+                edge_id = edge_lookup[edge_key]
+
+            else:
+                edge_id = next_edge_id
+                next_edge_id += 1
+
+                edge_lookup[edge_key] = edge_id
+
+                edge_registry[edge_id] = {
+                    "start_node": start_node,
+                    "end_node": end_node,
+                    "length": None
+                }
+
+            trajectory_edge_ids.append(edge_id)
+
+    return trajectory_edge_ids
+
+def route_osrm(points):
+
+    if len(points) < 2:
+        return None
+
+    coords = ";".join([f"{lon},{lat}" for lon, lat in points])
+
+    try:
+        response = requests.get(
+            f"http://localhost:5000/route/v1/driving/{coords}",
+            params={
+                "overview": "full",
+                "geometries": "geojson",
+                "annotations": "true",
+                "steps": "false"
+            },
+            timeout=5
+        )
+
+        data = response.json()
+
+    except:
+        return None
+
+    if "routes" not in data or not data["routes"]:
+        return None
+
+    return data["routes"][0]
+
 
 # Main
 
@@ -252,70 +358,93 @@ def load_data():
 
     with open(INPUT_FILE, newline='', encoding="utf-8") as csvfile, open(OUTPUT_FILE, "w") as out:
         reader = csv.DictReader(csvfile)
+        with open(TRAJECTORY_SEGMENTS_FILE, "w") as traj_segments_out:
+        
+            traj_segments_out.write("traj_id,order,segment_id\n")
+            
 
-        for row_index, row in enumerate(reader):
+            for row_index, row in enumerate(reader):
 
-            if row_index < START_LINE:
-                continue
-            if row_index >= END_LINE:
-                break
+                if row_index < START_LINE:
+                    continue
+                if row_index >= END_LINE:
+                    break
 
-            print("Converting row:", row_index)
+                print("Converting row:", row_index)
 
-            if row["MISSING_DATA"] == "True":
-                continue
-
-            try:
-                polyline = json.loads(row["POLYLINE"])
-            except:
-                continue
-
-            if not polyline or len(polyline) < MIN_POINTS:
-                continue
-
-            trajectory_points = []
-            prev_point = None
-            point_count = 0
-            timestamp = int(row["TIMESTAMP"])
-            timestamps = []
-
-            for coord in polyline:
-                lon, lat = coord
-                current_point = (lon, lat)
-
-                if prev_point and is_noise(prev_point, current_point):
-                    point_count += 1
+                if row["MISSING_DATA"] == "True":
                     continue
 
-                if prev_point and is_unrealistic_speed(prev_point, current_point):
-                    point_count += 1
+                try:
+                    polyline = json.loads(row["POLYLINE"])
+                except:
                     continue
-                                
 
-                if INCLUDE_TIME:
-                    ts = compute_timestamp(timestamp, point_count)
-                    timestamps.append(ts)
-                    trajectory_points.append(coord)
-                else:
+                if not polyline or len(polyline) < MIN_POINTS:
+                    continue
+
+                trajectory_points = []
+                timestamps = []
+
+                prev_point = None
+                point_count = 0
+                timestamp = int(row["TIMESTAMP"])
+
+                for coord in polyline:
+                    lon, lat = coord
+                    current_point = (lon, lat)
+
+                    if prev_point and is_noise(prev_point, current_point):
+                        point_count += 1
+                        continue
+
+                    if prev_point and is_unrealistic_speed(prev_point, current_point):
+                        point_count += 1
+                        continue
+
+                    if not (MIN_LON <= lon <= MAX_LON and MIN_LAT <= lat <= MAX_LAT):
+                        continue           
+                    
                     trajectory_points.append(coord)
                     
-                prev_point = current_point
-                point_count += 1
+                    if INCLUDE_TIME:
+                        ts = compute_timestamp(timestamp, point_count)
+                        timestamps.append(ts)
+                        
+                    prev_point = current_point
+                    point_count += 1
 
+                
 
-            if ENABLE_MAP_MATCHING:
-                matched = process_with_map_matching(
-                    trajectory_points,
-                    timestamps if INCLUDE_TIME else None
-                )
+                if ENABLE_MAP_MATCHING:
+                    matched_result = process_with_map_matching(
+                        trajectory_points,
+                        timestamps if INCLUDE_TIME else None
+                    )
 
-                if (matched and len(trajectory_points) >= MIN_POINTS) and is_meaningful_trip(trajectory_points):
+                    if not matched_result:
+                        continue
+                    
+                    matched, segment_ids = matched_result
+
+                    if not matched or len(trajectory_points) < MIN_POINTS:
+                        continue
+
+                    if not is_meaningful_trip(trajectory_points):
+                        continue
+
+                    
                     #trajectory = [f"{lon},{lat}" for lon, lat in matched]
                     write_trajectory2(out, matched, traj_id)
+
+                    for order, seg_id in enumerate(segment_ids):
+                        traj_segments_out.write(f"{traj_id},{order},{seg_id}\n")
+
                     traj_id += 1
-            else:
-                write_trajectory(out, trajectory_points, traj_id)
-                traj_id += 1
+                else:
+                    write_trajectory(out, trajectory_points, traj_id)
+                    traj_id += 1
+
 
     print("Finished converting to file:", OUTPUT_FILE)
 
