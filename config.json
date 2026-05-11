@@ -1,0 +1,70 @@
+{
+    "dataset": {
+        "tdrive": {
+            "input_location": "C:\\p10-data\\taxi_log_2008_by_id",
+            "output_location": "..\\data\\tdrive\\tdrive",
+            "segment_file_location": "..\\data\\tdrive\\tdrive_trajectory_segments",
+            "bounds": {
+                "min_lon": 115.7, 
+                "max_lon": 117.4,
+                "min_lat": 39.4,
+                "max_lat": 41.6
+            }
+        },
+        "geolife": {
+            "input_location": "C:\\p10-data\\Geolife Trajectories 1.3\\Data",
+            "output_location": "..\\data\\Geolife\\geolife",
+            "segment_file_location": "..\\data\\Geolife\\geolife_trajectory_segments",
+            "bounds": {
+                "min_lon": 115.7, 
+                "max_lon": 117.4,
+                "min_lat": 39.4,
+                "max_lat": 41.6
+            }
+        },
+        "porto": {
+            "input_location": "C:\\p10-data\\Porto\\train.csv",
+            "output_location": "..\\data\\Porto\\porto",
+            "segment_file_location": "..\\data\\Porto\\porto_trajectory_segments",
+            "bounds": {
+                "min_lon": -8.78, 
+                "max_lon": -7.74,
+                "min_lat": 40.9,
+                "max_lat": 41.46
+            }
+        }
+    },
+    "processing_parameters": {
+        "start_index": 0,
+        "end_index": 2,
+
+        "min_trajectories": 0,
+        "max_trajectories": 1000,
+
+        "include_time": true,
+
+        "min_points": 3,
+        "max_speed": 40,
+        "max_time": 900,
+
+        "min_distance": 0.0001,
+        "max_distance": 0.05,
+
+        "min_trajectory_distance": 0.01
+
+        
+    },
+    "map_matching": {
+        "enable": true,
+        "max_match_points": 100,
+        "OSRM_url": "http://localhost:5000/match/v1/driving"
+    },
+    "dp_methods": {
+        "adatrace" : {
+
+        },
+        "privtrace" : {
+
+        }
+    }
+}

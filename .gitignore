@@ -612,3 +612,8 @@ fabric.properties
 *.class
 /DP-Star/data/Geolife Trajectories 1.3
 /DP_STTS/.idea
+/output
+/map-output
+/tdrive
+/PrivTrace-main/datasets
+/data
