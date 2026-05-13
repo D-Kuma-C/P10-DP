@@ -36,12 +36,12 @@
     },
     "processing_parameters": {
         "start_index": 0,
-        "end_index": 2,
+        "end_index": null,
 
         "min_trajectories": 0,
         "max_trajectories": 1000,
 
-        "include_time": true,
+        "include_time": false,
 
         "min_points": 3,
         "max_speed": 40,
@@ -51,7 +51,6 @@
         "max_distance": 0.05,
 
         "min_trajectory_distance": 0.01
-
         
     },
     "map_matching": {
@@ -61,10 +60,36 @@
     },
     "dp_methods": {
         "adatrace" : {
-
+            "input_path": "",
+            "output_path": "",
+            "interp": true,
+            "attacks_on": true
         },
         "privtrace" : {
-
+            "input_path": "",
+            "output_path": ""
+        },
+        "dp-star": {
+            "input_path": "",
+            "output_path": ""
+        },
+        "dp-stts": {
+            "input_path": "",
+            "output_path": "",
+            "time_range": "",
+            "time_step": "",
+            "num_time_intervals": "",
+            "iterations": "",
+            "random_seed": ""
+        },
+        "parameters": {
+            "dataset_name": "",
+            "ebsilon": "",
+            "ebsilon_values": "",
+            "ebsilon_allocation": "",
+            "grid_size": "",
+            "spatial_range": ""
         }
+
     }
 }

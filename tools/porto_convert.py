@@ -43,6 +43,7 @@ POINT_INTERVAL = 15 # 15 seconds between points
 
 
 time_tag = "_time" if INCLUDE_TIME else ""
+line_tag = "all" if not START_LINE or not END_LINE else f"{END_LINE-START_LINE}"
 mapmatch_tag = "-raw" if not ENABLE_MAP_MATCHING else ""
 
 current_time = datetime.datetime.now().strftime("%m%d_%H%M%S")
@@ -50,8 +51,8 @@ current_time = datetime.datetime.now().strftime("%m%d_%H%M%S")
 output_name = (
     f"{mapmatch_tag}"
     f"{time_tag}"
-    f"_lines-{END_LINE-START_LINE}"
-    f"{current_time}"
+    f"_lines-{line_tag}"
+    f"_{current_time}"
     f"_p-{MIN_POINTS}"
     f"_d-{MAX_DISTANCE}"
     f"_s-{MAX_SPEED}"
@@ -365,9 +366,9 @@ def load_data():
 
             for row_index, row in enumerate(reader):
 
-                if row_index < START_LINE:
+                if START_LINE and row_index < START_LINE:
                     continue
-                if row_index >= END_LINE:
+                if END_LINE and row_index >= END_LINE:
                     break
 
                 print("Converting row:", row_index)

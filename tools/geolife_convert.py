@@ -41,6 +41,7 @@ START_DATE = datetime.datetime.strptime("2007-04-01", "%Y-%m-%d")
 END_DATE = datetime.datetime.strptime("2011-11-01", "%Y-%m-%d")
 
 time_tag = "_time" if INCLUDE_TIME else ""
+line_tag = "-all" if not START_USER_INDEX or not END_USER_INDEX else f"{END_USER_INDEX-START_USER_INDEX}"
 mapmatch_tag = "-raw" if not ENABLE_MAP_MATCHING else ""
 
 current_time = datetime.datetime.now().strftime("%m%d_%H%M%S")
@@ -48,7 +49,7 @@ current_time = datetime.datetime.now().strftime("%m%d_%H%M%S")
 output_name = (
     f"{mapmatch_tag}"
     f"{time_tag}"
-    f"_users-{END_USER_INDEX-START_USER_INDEX}"
+    f"_users-{line_tag}"
     f"_{current_time}"
     f"_p-{MIN_POINTS}"
     f"_d-{MAX_DISTANCE}"
@@ -342,9 +343,9 @@ def load_data():
             traj_segments_out.write("traj_id,order,segment_id\n")
 
             for index, user in enumerate(os.listdir(INPUT_FOLDER)):
-                if index < START_USER_INDEX:
+                if START_USER_INDEX and index < START_USER_INDEX:
                     continue
-                if index >= END_USER_INDEX:
+                if END_USER_INDEX and index >= END_USER_INDEX:
                     break
 
                 print("Converting trajectories for user:", user)
