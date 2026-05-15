@@ -46,8 +46,8 @@ if __name__ == "__main__":
     rlt1 = RealLocationTranslator(pc)
     real_tra_list = rlt1.translate_trajectories(grid, st_tra_list)
 
-    print(f"Saving results to {fname.result_file_name}")
-    writer.save_trajectory_data_in_list_to_file(real_tra_list, fname.result_file_name)
+    print(f"Saving results to {pc.result_file_name}")
+    writer.save_trajectory_data_in_list_to_file(real_tra_list, pc.result_file_name)
     
     end_time = datetime.datetime.now()
     print(f"Process finishes at {end_time}")

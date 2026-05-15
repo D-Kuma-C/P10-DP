@@ -12,8 +12,8 @@ import random
 
 import numpy as np
 
-from utils import ProgressBar
-from utils import cal_time_interval
+from DP_Star.utils import ProgressBar
+from DP_Star.utils import cal_time_interval
 
 
 def extract_dataset(lat_lon, trajs_name_file, init_path, base_path, rand_num):

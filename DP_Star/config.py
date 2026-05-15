@@ -20,7 +20,7 @@ epsilon_alloc = {
 }
 
 # the number of the top grid
-n_top_grid = 7
+n_top_grid = 15
 
 # a significant parm for adaptive grid, the smaller it is, the more bottom grid will be generate.
 beta_factor = 80
@@ -39,13 +39,13 @@ MIN_LAT_LON = {'Geolife Trajectories 1.3': [39.4, 115.7],
                'Guangzhou Taxi_60_six_hours': [21.2554, 110.0]
                }
 
-MDL_SCALING_RATE = {'Geolife Trajectories 1.3': 1100,
+MDL_SCALING_RATE = {'Geolife Trajectories 1.3': 500,
                     'Brinkhoff': 300,
                     'Guangzhou Taxi_30_six_hours': 500,
                     'Guangzhou Taxi_60_six_hours': 500
                     }
 
-TRAJS_NUM = {'Geolife Trajectories 1.3': 17341, # Før 14650
+TRAJS_NUM = {'Geolife Trajectories 1.3': 17671, # Før 14650
              'Brinkhoff': 50000,
              'Guangzhou Taxi_30_six_hours': 30000,
              'Guangzhou Taxi_60_six_hours': 30000,

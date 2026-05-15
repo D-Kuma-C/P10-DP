@@ -11,6 +11,7 @@ class ParSetter:
     def set_up_args(self, dataset_file_name=None, epsilon=False, epsilon_partition=False, level1_parameter=False, level2_parameter=False):
         parser = argparse.ArgumentParser()
         parser.add_argument('--dataset_file_name', type=str, default=fname.dataset_file_name)
+        parser.add_argument('--result_file_name', type=str, default=fname.result_file_name)
         parser.add_argument('--subdividing_inner_parameter', type=float, default=100)
         parser.add_argument('--total_epsilon', type=float, default=2.0)
         # regularly, partition solution is suggested to be np.array([0.2, 0.52, 0.28]))
@@ -18,6 +19,9 @@ class ParSetter:
         # this parameter indicates how many trajectories to generate
         parser.add_argument('--trajectory_number_to_generate', type=int, default=-1)
         args = vars(parser.parse_args())
+        args['epsilon_partition'] = np.array(
+            [float(x.strip()) for x in args['epsilon_partition'].split(",")]
+        )
         if epsilon is not False:
             args['total_epsilon'] = epsilon
         if epsilon_partition is not False:

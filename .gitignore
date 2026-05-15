@@ -608,14 +608,31 @@ fabric.properties
 # idea folder, uncomment if you don't need it
 # .idea
 /Privacy_attack/.idea
-/DP-Star/data/Geolife Trajectories 1.3
+/DP_Star/data/Geolife Trajectories 1.3
 /.idea
-/DP-Star/.idea
-DP-Star/.idea/DP-Star.iml
+/DP_Star/.idea
+DP_Star/.idea/DP-Star.iml
 /Privacy_attack/data/output
 /trajectory_similarity/data/original
 *.class
-/DP-Star/data/Geolife Trajectories 1.3
+/DP_Star/data/Geolife Trajectories 1.3
 /DP_STTS/.idea
 AdaTrace/porto_20k.dat
 /boundingRectangle
+/input/dpstar_synthetic/eps_0.1
+/input/dpstar_synthetic/eps_0.5
+/input/dpstar_synthetic/eps_1.0
+/input/dpstar_synthetic/eps_2.0
+/input/cleandata/porto
+/input/cleandata/porto
+input/adatrace_synthetic/porto_20k.dat-eps1.0-iteration0.dat
+input/adatrace_synthetic/porto_20k.dat-eps1.0-iteration1.dat
+input/adatrace_synthetic/porto_20k.dat-eps1.0-iteration2.dat
+input/adatrace_synthetic/porto_20k.dat-eps1.0-iteration3.dat
+input/adatrace_synthetic/porto_20k.dat-eps1.0-iteration4.dat
+AdaTrace/porto_20k.dat-eps1.0-iteration0.dat
+AdaTrace/porto_20k.dat-eps1.0-iteration0.dat
+/PrivTrace-main/tools/__pycache__
+/PrivTrace-main/tools/__pycache__
+*.pyc
+/input/cleandata/porto
