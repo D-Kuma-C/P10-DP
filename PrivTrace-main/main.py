@@ -1,5 +1,6 @@
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+from pathlib import Path
 
 import config.folder_and_file_names as fname
 from discretization.get_discretization import DisData
@@ -46,8 +47,11 @@ if __name__ == "__main__":
     rlt1 = RealLocationTranslator(pc)
     real_tra_list = rlt1.translate_trajectories(grid, st_tra_list)
 
-    print(f"Saving results to {pc.result_file_name}")
-    writer.save_trajectory_data_in_list_to_file(real_tra_list, pc.result_file_name)
+    output_path = Path(pc.result_file_name)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    print(f"Saving results to {output_path}")
+    writer.save_trajectory_data_in_list_to_file(real_tra_list, str(output_path))
     
     end_time = datetime.datetime.now()
     print(f"Process finishes at {end_time}")

@@ -3,6 +3,8 @@ import subprocess
 import sys
 import shutil
 import os
+import datetime
+import time
 
 
 ROOT_DIR = Path(__file__).resolve().parent
@@ -11,8 +13,10 @@ ROOT_DIR = Path(__file__).resolve().parent
 
 DP_STAR_PYTHON = r"C:\Users\test\anaconda3\envs\dp-star\python.exe"
 
-# AdaTrace folder:
-# root/adatrace
+
+# -----------------------------
+# AdaTrace paths
+# -----------------------------
 ADATRACE_DIR = ROOT_DIR / "adatrace"
 
 SRC_DIR = ADATRACE_DIR / "src"
@@ -21,7 +25,10 @@ BUILD_DIR = ADATRACE_DIR / "build"
 COMMONS_MATH_JAR = ADATRACE_DIR / "commons-math3-3.4.1.jar"
 KD_JAR = ADATRACE_DIR / "kd.jar"
 
-# DP-Star folder:
+
+# -----------------------------
+# DP-Star paths
+# -----------------------------
 DP_STAR_DIR = ROOT_DIR / "DP_Star"
 DP_STAR_MAIN = DP_STAR_DIR / "dp_star_main.py"
 
@@ -30,6 +37,15 @@ COLLECT_DPSTAR_SCRIPT = ROOT_DIR / "tools" / "collect_dpstar_sd_to_dat.py"
 
 #DP_STAR_CONDA_ENV = "dp-star"
 
+# -----------------------------
+# PrivTrace paths
+# -----------------------------
+
+PRIVTRACE_DIR = ROOT_DIR / "PrivTrace-main"
+PRIVTRACE_MAIN = PRIVTRACE_DIR / "main.py"
+
+# Use the Python executable from the environment where PrivTrace dependencies are installed.
+PRIVTRACE_PYTHON = r"C:\Users\test\anaconda3\envs\db_code_py310\python.exe"
 
 # -----------------------------
 # AdaTrace parameters
@@ -79,6 +95,51 @@ DP_STAR_EPSILON_ALLOC = [1 / 9, 3 / 9, 4 / 9, 1 / 9]
 
 # Keep as None to use the number of prepared trajectories.
 DP_STAR_SYNTHETIC_COUNT = None
+
+# -----------------------------
+# PrivTrace parameters
+# -----------------------------
+
+PRIVTRACE_INPUT = (
+    ROOT_DIR
+    / "input"
+    / "cleandata"
+    / "porto"
+    / "porto_time_lines-20000_p-3_d-0.05_s-40_t-15min_start-20130107_end-20140630_small_500.dat"
+)
+
+PRIVTRACE_OUTPUT_ROOT = ROOT_DIR / "input" / "privtrace_synthetic"
+
+PRIVTRACE_EPSILONS = [0.5, 1.0]
+
+# grid, Markov, guidepost/order-2
+PRIVTRACE_EPSILON_PARTITION = [0.2, 0.6, 0.2]
+
+# -1 means PrivTrace generates the same number as the original input.
+PRIVTRACE_TRAJECTORY_COUNT = -1
+
+# -----------------------------
+# DP_STTS parameters
+# -----------------------------
+
+DP_STTS_INPUT = ROOT_DIR / "input" / "cleandata" / "porto" / "porto_small_500.dat"
+
+DP_STTS_OUTPUT_ROOT = ROOT_DIR / "input" / "dpstts_synthetic"
+
+DP_STTS_EPSILONS = [0.1, 0.5, 1.0, 2.0]
+
+DP_STTS_DATASET_NAME = "Porto"
+
+DP_STTS_CELL_H = 6
+DP_STTS_CELL_W = 6
+
+DP_STTS_TIME_STEP = 15  # minutes
+
+DP_STTS_ITERATIONS = 1
+
+DP_STTS_EPSILON_PREFIX_RATIO = 0.5
+
+
 
 def run_command(command, cwd=None):
     print()
@@ -363,6 +424,105 @@ def run_adatrace():
 
     print("\nAdaTrace finished.")
 
+def validate_privtrace_paths():
+    required_paths = [
+        PRIVTRACE_DIR,
+        PRIVTRACE_MAIN,
+        PRIVTRACE_DIR / "config" / "folder_and_file_names.py",
+        PRIVTRACE_DIR / "config" / "parameter_setter.py",
+        PRIVTRACE_DIR / "config" / "parameter_carrier.py",
+        PRIVTRACE_DIR / "tools" / "data_reader.py",
+        PRIVTRACE_INPUT,
+    ]
+
+    missing = [p for p in required_paths if not p.exists()]
+
+    if missing:
+        missing_text = "\n".join(str(p) for p in missing)
+        raise FileNotFoundError(
+            f"Missing required PrivTrace files/folders:\n{missing_text}"
+        )
+
+    python_path = Path(PRIVTRACE_PYTHON)
+    if not python_path.exists():
+        raise FileNotFoundError(
+            f"PrivTrace Python executable not found:\n{python_path}"
+        )
+
+def epsilon_label(epsilon):
+    return f"eps_{epsilon}"
+
+
+def run_privtrace():
+    """
+    Runs PrivTrace once per epsilon.
+
+    Each epsilon is a separate Python process.
+    """
+    validate_privtrace_paths()
+
+    epsilon_partition = ",".join(str(v) for v in PRIVTRACE_EPSILON_PARTITION)
+    total_runs = len(PRIVTRACE_EPSILONS)
+
+    print("\nPrivTrace epsilon list:", PRIVTRACE_EPSILONS, flush=True)
+
+    for run_index, epsilon in enumerate(PRIVTRACE_EPSILONS, start=1):
+        eps_label = f"eps_{epsilon}"
+
+        output_file = (
+            PRIVTRACE_OUTPUT_ROOT
+            / eps_label
+            / f"privtrace_{eps_label}.dat"
+        )
+
+        command = [
+            PRIVTRACE_PYTHON,
+            "-u",  # unbuffered output
+            str(PRIVTRACE_MAIN),
+
+            "--dataset_file_name",
+            str(PRIVTRACE_INPUT),
+
+            "--result_file_name",
+            str(output_file),
+
+            "--total_epsilon",
+            str(epsilon),
+
+            "--epsilon_partition",
+            epsilon_partition,
+
+            "--trajectory_number_to_generate",
+            str(PRIVTRACE_TRAJECTORY_COUNT),
+        ]
+
+        start_time = time.time()
+        start_datetime = datetime.datetime.now()
+
+        print("\n" + "=" * 100, flush=True)
+        print(f"STARTING PrivTrace run {run_index}/{total_runs}", flush=True)
+        print(f"Started at: {start_datetime}", flush=True)
+        print(f"Epsilon: {epsilon}", flush=True)
+        print(f"Input: {PRIVTRACE_INPUT}", flush=True)
+        print(f"Output: {output_file}", flush=True)
+        print("Command:", flush=True)
+        print(" ".join(f'"{x}"' if " " in str(x) else str(x) for x in command), flush=True)
+        print("=" * 100 + "\n", flush=True)
+
+        run_command(command, cwd=PRIVTRACE_DIR)
+
+        elapsed = time.time() - start_time
+        end_datetime = datetime.datetime.now()
+
+        print("\n" + "=" * 100, flush=True)
+        print(f"FINISHED PrivTrace run {run_index}/{total_runs}", flush=True)
+        print(f"Epsilon: {epsilon}", flush=True)
+        print(f"Finished at: {end_datetime}", flush=True)
+        print(f"Elapsed seconds: {elapsed:.2f}", flush=True)
+        print(f"Output exists: {output_file.exists()}", flush=True)
+        print(f"Output: {output_file}", flush=True)
+        print("=" * 100 + "\n", flush=True)
+
 
 def main():
     try:
@@ -371,9 +531,12 @@ def main():
         # run_adatrace()
 
         # DP-Star
-        prepare_dpstar_dataset()
-        run_dp_star()
-        collect_dpstar_outputs()
+        # prepare_dpstar_dataset()
+        # run_dp_star()
+        # collect_dpstar_outputs()
+
+        # PrivTrace
+        run_privtrace()
 
     except subprocess.CalledProcessError as e:
         print(f"\nCommand failed with exit code {e.returncode}")

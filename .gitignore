@@ -636,3 +636,5 @@ AdaTrace/porto_20k.dat-eps1.0-iteration0.dat
 /PrivTrace-main/tools/__pycache__
 *.pyc
 /input/cleandata/porto
+/DP_STTS/original
+DP_STTS/original/neighborFile_20.txt
