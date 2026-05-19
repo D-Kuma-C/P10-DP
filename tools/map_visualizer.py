@@ -3,35 +3,47 @@ import folium
 BEIJING = [39.9, 116]
 PORTO = [41.15, -8.62]
 
-m = folium.Map(location=BEIJING, zoom_start=11, tiles="CartoDB positron")
+MAX_TRAJECTORIES = 20000
+
+m = folium.Map(location=PORTO, zoom_start=11, tiles="CartoDB positron", prefer_canvas=True)
 
 def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
-    with open(file_path) as f:
-        lines = f.readlines()
+    
 
     traj = []
     count = 0
+    with open(file_path) as f:
+        for line in f:
+            line = line.strip()
 
-    for line in lines:
-        line = line.strip()
+            if line.startswith("#"):
+                if traj:
+                    folium.PolyLine(traj, color=color, weight=1, opacity=0.2).add_to(m)
+                    traj = []
+                    count += 1
+                    if max_traj and (count > max_traj):
+                        break
+            elif line.startswith(">0:"):
+                points = line[3:].split(";")
+                for p in points:
+                    if p:
+                        coords = p.split(",")
+                        lon = float(coords[0])
+                        lat = float(coords[1])
 
-        if line.startswith("#"):
-            if traj:
-                folium.PolyLine(traj, color=color, weight=2, opacity=0.6).add_to(m)
-                traj = []
-                count += 1
-                if max_traj and (count > max_traj):
-                    break
-        elif line.startswith(">0:"):
-            points = line[3:].split(";")
-            for p in points:
-                if p:
-                    lon, lat = map(float, p.split(","))
-                    traj.append((lat, lon))
+                        traj.append((lat, lon))
+    
+        if traj:
+            folium.PolyLine(
+                traj,
+                color=color,
+                weight=1,
+                opacity=0.2
+            ).add_to(m)
     
     print("Trajectory count: ", count)
     
 
-plot_file(r"C:\Git\P10-DP\geolife\test.dat", color="blue")
+plot_file(r"C:\Git\P10-DP\t-drive\tdrive__files-1000508_134500_p-3_d-0.05_t-15min_start-20080202_end-20080209.dat", max_traj=MAX_TRAJECTORIES, color="blue")
 
-m.save(f"testing.html")
+m.save(r"C:\Git\P10-DP\map-output\testing.html")
