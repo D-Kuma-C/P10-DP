@@ -62,8 +62,16 @@ def parse_dat_trajectories(
                     if not piece:
                         continue
 
-                    a_str, b_str = piece.split(",")
-                    current_points.append((float(a_str), float(b_str)))
+                    parts = [p.strip() for p in piece.split(",")]
+
+                    if len(parts) < 2:
+                        continue
+
+                    a = float(parts[0])
+                    b = float(parts[1])
+
+                    timestamp = parts[2] if len(parts) >= 3 else None
+                    current_points.append((float(a), float(b)))
 
         if current_points:
             trajectories.append(current_points)

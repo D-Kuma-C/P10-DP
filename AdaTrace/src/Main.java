@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import javax.print.DocFlavor.STRING;
+
 import org.apache.commons.math3.distribution.LaplaceDistribution;
 import org.apache.commons.math3.ml.distance.EarthMoversDistance;
 
@@ -451,6 +453,8 @@ public class Main {
 		double markovEMD = Evaluation.calcJSD(MarkovPrior, MarkovPosterior);
 		
 		// check if EMD > vartheta
+		System.out.println("tripEMD = " + String.valueOf(tripEMD));
+		System.out.println("markovEMD = " + String.valueOf(markovEMD));
 		if (tripEMD > VARTHETA) {
 			return false;
 		} 
@@ -592,6 +596,7 @@ public class Main {
 			//System.out.println("relevant subset size: " + relevantSubset.size()); // debug msg
 			if (relevantSubset.size() == 0 || evaluateBayesianAttack(TripPrior, MarkovPrior, 
 					relevantSubset, grid, VARTHETA)) {
+				System.out.println("relevantSubset size = " + String.valueOf(relevantSubset.size()));
 				bayesianAttackPass = true;
 				break;
 			} else {
@@ -693,7 +698,7 @@ public class Main {
 		double[] scores = new double[synDBxy.size()];
 		for (int i = 0; i < synDBxy.size(); i++) {
 			if (i % 100 == 0 || i == synDBxy.size() - 1) {
-				printProgress("Outlier 1/8 start scores", i + 1, synDBxy.size());
+				printProgress("Outlier 1/9 start scores", i + 1, synDBxy.size());
 			}
 			double[] targ = new double[2];
 			targ[0] = synDBxy.get(i).getPoint(0).getX();
@@ -715,7 +720,7 @@ public class Main {
 		// (ii) Plausible deniability for trip start outliers
 		for (int outlierIndex = 0; outlierIndex < outliers.size(); outlierIndex++) {
 			if (outlierIndex % 10 == 0 || outlierIndex == outliers.size() - 1) {
-				printProgress("Outlier 2/8 start fixing", outlierIndex + 1, outliers.size());
+				printProgress("Outlier 2/9 start fixing", outlierIndex + 1, outliers.size());
 			}
 
 			Trajectory Tout = outliers.get(outlierIndex);
@@ -777,7 +782,7 @@ public class Main {
 		scores = new double[synDBxy.size()];
 		for (int i = 0; i < synDBxy.size(); i++) {
 			if (i % 100 == 0 || i == synDBxy.size() - 1) {
-				printProgress("Outlier 3/8 end scores", i + 1, synDBxy.size());
+				printProgress("Outlier 3/9 end scores", i + 1, synDBxy.size());
 			}
 			double[] targ = new double[2];
 			targ[0] = synDBxy.get(i).getPoint(0).getX();
@@ -798,7 +803,7 @@ public class Main {
 		// (iv) Fix trip end outliers
 		for (int outlierIndex = 0; outlierIndex < outliers.size(); outlierIndex++) {
 			if (outlierIndex % 10 == 0 || outlierIndex == outliers.size() - 1) {
-				printProgress("Outlier 4/8 end fixing", outlierIndex + 1, outliers.size());
+				printProgress("Outlier 4/9 end fixing", outlierIndex + 1, outliers.size());
 			}
 
 			Trajectory Tout = outliers.get(outlierIndex);
@@ -858,7 +863,7 @@ public class Main {
 		scores = new double[synDBxy.size()];
 		for (int i = 0; i < synDBxy.size(); i++) {
 			if (i % 100 == 0 || i == synDBxy.size() - 1) {
-				printProgress("Outlier 5/8 length scores", i + 1, synDBxy.size());
+				printProgress("Outlier 5/9 length scores", i + 1, synDBxy.size());
 			}
 			double[] targ = new double[1];
 			targ[0] = synDBxy.get(i).getDistanceTravelled();
@@ -886,7 +891,7 @@ public class Main {
 		double maxPossibleDistance = maxdd-mindd;
 		for (int outlierIndex = 0; outlierIndex < outliers.size(); outlierIndex++) {
 			if (outlierIndex % 10 == 0 || outlierIndex == outliers.size() - 1) {
-				printProgress("Outlier 6/8 length fixing", outlierIndex + 1, outliers.size());
+				printProgress("Outlier 6/9 length fixing", outlierIndex + 1, outliers.size());
 			}
 
 			Trajectory Tout = outliers.get(outlierIndex);
@@ -956,7 +961,7 @@ public class Main {
 		outliers = new ArrayList<Trajectory>();
 		for (int i = 0; i < synDetailed.size(); i++) {
 			if (i % 100 == 0 || i == synDetailed.size() - 1) {
-				printProgress("Outlier 7/8 location search", i + 1, synDetailed.size());
+				printProgress("Outlier 7/9 location search", i + 1, synDetailed.size());
 			}
 			GridTrajectory cand = synDetailed.get(i);
 			for (Cell c : cand.getCells()) {
@@ -971,7 +976,7 @@ public class Main {
 		// (viii) Fix location visit outliers
 		for (int outlierIndex = 0; outlierIndex < outliers.size(); outlierIndex++) {
 			if (outlierIndex % 10 == 0 || outlierIndex == outliers.size() - 1) {
-				printProgress("Outlier 8/8 location fixing", outlierIndex + 1, outliers.size());
+				printProgress("Outlier 8/9 location fixing", outlierIndex + 1, outliers.size());
 			}
 
 			Trajectory Tout = outliers.get(outlierIndex);

@@ -638,3 +638,11 @@ AdaTrace/porto_20k.dat-eps1.0-iteration0.dat
 /input/cleandata/porto
 /DP_STTS/original
 DP_STTS/original/neighborFile_20.txt
+/DP_STTS/data
+/input/dpstts_synthetic
+/input/privtrace_synthetic
+/output/Privacy/adatrace
+/output/Privacy/dp_star
+/output/Privacy/privtrace
+*.pyc
+/input/privtrace_synthetic

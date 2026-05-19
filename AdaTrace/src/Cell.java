@@ -98,10 +98,12 @@ public class Cell {
 			double xcoord = this.minX + (new Random().nextDouble())*(this.maxX-this.minX);
 			double ycoord = this.minY + (new Random().nextDouble())*(this.maxY-this.minY);
 			// rounding to 2 digits after decimal place for producing more readable output
-			DecimalFormat df = new DecimalFormat("#.##");
-			df.setRoundingMode(RoundingMode.HALF_UP);
-			xcoord = Double.parseDouble(df.format(xcoord));
-			ycoord = Double.parseDouble(df.format(ycoord));
+			// DecimalFormat df = new DecimalFormat("#.##");
+			// df.setRoundingMode(RoundingMode.HALF_UP);
+			// xcoord = Double.parseDouble(df.format(xcoord));
+			// ycoord = Double.parseDouble(df.format(ycoord));
+			xcoord = Math.round(xcoord * 100.0) / 100.0;
+			ycoord = Math.round(ycoord * 100.0) / 100.0;
 			return new Point(xcoord, ycoord);
 		}
 	}

@@ -50,10 +50,18 @@ def trans(dataset, epsilon, cellH, numtimeInterval, h, times):
                     lon = float(left + columnindex * cellwidth + cellwidth / 2)
                     output.write(str(lon) + ",")
                     output.write(str(lat) + ",")
-                    time = float(para.startTime.second / 60) + para.timestep * float(array[j + 1]) + para.timestep / 2
-                    time = para.startTime + datetime.timedelta(seconds=time * 60)
+                    minutes_from_start = (
+                            float(para.startTime.second / 60)
+                            + para.timestep * float(array[j + 1])
+                            + para.timestep / 2
+                    )
 
-                    output.write(str(time) + ";")
+                    base_date = datetime.datetime.strptime(fixedtime, "%Y-%m-%d").date()
+                    base_datetime = datetime.datetime.combine(base_date, para.startTime.time())
+
+                    synthetic_time = base_datetime + datetime.timedelta(seconds=minutes_from_start * 60)
+
+                    output.write(str(synthetic_time) + ";")
 
                     j = j + 2
             output.write('\n')

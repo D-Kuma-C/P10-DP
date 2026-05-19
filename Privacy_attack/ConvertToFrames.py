@@ -89,7 +89,15 @@ def convert_dat_to_dataframe(
 
                 for pair in pairs:
                     if pair:
-                        a, b = map(float, pair.split(","))
+                        parts = [p.strip() for p in pair.split(",")]
+
+                        if len(parts) < 2:
+                            continue
+
+                        a = float(parts[0])
+                        b = float(parts[1])
+
+                        timestamp = parts[2] if len(parts) >= 3 else None
                         current_traj.append((a, b))
 
     if current_traj:

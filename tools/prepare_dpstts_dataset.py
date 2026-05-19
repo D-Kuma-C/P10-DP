@@ -192,24 +192,24 @@ def infer_time_range(trajectories):
 
 def write_boundary_file(parameters_dir: Path, lon_min, lon_max, lat_min, lat_max):
     """
-    DP-STTS parameters.py expects boundary.txt in this order:
+    DP-STTS boundary.txt uses this order:
 
-        left right top bottom
+        left right bottom top
 
-    For lon/lat, that means:
+    For lon/lat:
 
-        lon_min lon_max lat_max lat_min
+        lon_min lon_max lat_min lat_max
     """
     boundary_file = parameters_dir / "boundary.txt"
 
     with boundary_file.open("w", encoding="utf-8") as f:
-        f.write(f"{lon_min} {lon_max} {lat_max} {lat_min}\n")
+        f.write(f"{lon_min} {lon_max} {lat_min} {lat_max}\n")
 
     print(f"Wrote boundary: {boundary_file}")
-    print(f"  left/lon_min  = {lon_min}")
-    print(f"  right/lon_max = {lon_max}")
-    print(f"  top/lat_max   = {lat_max}")
-    print(f"  bottom/lat_min= {lat_min}")
+    print(f"  left/lon_min   = {lon_min}")
+    print(f"  right/lon_max  = {lon_max}")
+    print(f"  bottom/lat_min = {lat_min}")
+    print(f"  top/lat_max    = {lat_max}")
 
 
 def write_cell_size_file(parameters_dir: Path, cell_h: int, cell_w: int):
