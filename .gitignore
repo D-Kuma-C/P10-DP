@@ -646,3 +646,4 @@ DP_STTS/original/neighborFile_20.txt
 /output/Privacy/privtrace
 *.pyc
 /input/privtrace_synthetic
+/DP_STTS/data/raw_data
