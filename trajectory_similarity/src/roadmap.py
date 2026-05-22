@@ -1,5 +1,6 @@
 import pandas as pd
 import networkx as nx
+from tqdm import tqdm
 
 
 class RoadMap:
@@ -9,6 +10,7 @@ class RoadMap:
         self.segment_to_nodes = {}
         self.node_positions = {}
         self._distance_cache = {}
+        self._source_distance_cache = {}
 
     @classmethod
     def from_files(cls, nodes_file: str, edges_file: str):
@@ -56,21 +58,47 @@ class RoadMap:
         if node_a == node_b:
             return 0.0
 
-        key = (node_a, node_b) if node_a <= node_b else (node_b, node_a)
-        if key in self._distance_cache:
-            return self._distance_cache[key]
+        node_a = int(node_a)
+        node_b = int(node_b)
 
-        try:
-            dist = nx.shortest_path_length(
-                self.graph,
-                source=node_a,
-                target=node_b,
-                weight="weight",
-            )
-        except nx.NetworkXNoPath:
-            dist = float("inf")
-        except nx.NodeNotFound:
-            dist = float("inf")
+        if node_a not in self._source_distance_cache:
+            try:
+                self._source_distance_cache[node_a] = nx.single_source_dijkstra_path_length(
+                    self.graph,
+                    node_a,
+                    weight="weight",
+                )
+            except nx.NodeNotFound:
+                self._source_distance_cache[node_a] = {}
 
-        self._distance_cache[key] = float(dist)
-        return float(dist)
+        return float(self._source_distance_cache[node_a].get(node_b, float("inf")))
+
+    def precompute_distances_for_trajectories(self, trajectories):
+        node_ids = set()
+
+        for traj in trajectories:
+            for point in traj.points:
+                if point.node_id is not None:
+                    node_ids.add(int(point.node_id))
+
+        node_ids = sorted(node_ids)
+
+        print(f"Precomputing shortest-path distances for {len(node_ids)} unique nodes...")
+
+        for source in tqdm(node_ids, desc="Precomputing node distances"):
+            try:
+                lengths = nx.single_source_dijkstra_path_length(
+                    self.graph,
+                    source,
+                    weight="weight",
+                )
+            except nx.NodeNotFound:
+                continue
+
+            for target in node_ids:
+                key = (source, target) if source <= target else (target, source)
+
+                if key not in self._distance_cache:
+                    self._distance_cache[key] = float(lengths.get(target, float("inf")))
+
+        print(f"Distance cache size: {len(self._distance_cache)}")

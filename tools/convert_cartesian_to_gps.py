@@ -1,77 +1,103 @@
+from pathlib import Path
+import argparse
 from pyproj import Transformer
 
-input_file = r"C:\Users\test\Desktop\Uni\P10-DP\AdaTrace\porto_20k.dat-eps1.0-iteration0.dat"
-output_file = r"C:\Users\test\Desktop\Uni\P10-DP\trajectory_similarity\data\synthetic\porto_20k.dat-eps1.0-iteration0.dat"
 
-# IMPORTANT:
-# Use the same CRS as the GPS -> x,y conversion.
-# For Porto, we used UTM zone 29N.
-transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
+def convert_xy_to_gps(input_file: Path, output_file: Path, source_crs: str, target_crs: str):
+    if not input_file.exists():
+        raise FileNotFoundError(f"Input file does not exist: {input_file}")
 
-# IMPORTANT:
-# Paste the exact min_x and min_y printed by your GPS -> x,y conversion script.
-# Example:
-# min_x used for shift: 531234.123
-# min_y used for shift: 4556789.456
-MIN_X = 0.0  # replace with your printed min_x
-MIN_Y = 0.0  # replace with your printed min_y
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
-# Optional:
-# AdaTrace output usually does not contain timestamps.
-# If you want to preserve the same output format as before:
-# lon,lat,timestamp
-# then use a placeholder timestamp.
-# 1970-01-01 00:00:00
-PLACEHOLDER_TIMESTAMP = ""
+    transformer = Transformer.from_crs(
+        source_crs,
+        target_crs,
+        always_xy=True,
+    )
+
+    trajectory_count = 0
+    point_count = 0
+
+    with input_file.open("r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    with output_file.open("w", encoding="utf-8") as out:
+        for raw_line in lines:
+            line = raw_line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith("#"):
+                out.write(line + "\n")
+                trajectory_count += 1
+                continue
+
+            if line.startswith(">"):
+                point_text = line.split(":", 1)[1]
+                raw_points = point_text.split(";")
+
+                converted_points = []
+
+                for raw_point in raw_points:
+                    raw_point = raw_point.strip()
+
+                    if not raw_point:
+                        continue
+
+                    parts = [p.strip() for p in raw_point.split(",")]
+
+                    if len(parts) < 2:
+                        continue
+
+                    x = float(parts[0])
+                    y = float(parts[1])
+
+                    lon, lat = transformer.transform(x, y)
+
+                    converted_points.append(f"{lon:.8f},{lat:.8f}")
+                    point_count += 1
+
+                out.write(">0:" + ";".join(converted_points) + ";\n")
+
+    print("Cartesian x,y to GPS lon,lat conversion complete.")
+    print(f"Input: {input_file}")
+    print(f"Output: {output_file}")
+    print(f"Source CRS: {source_crs}")
+    print(f"Target CRS: {target_crs}")
+    print(f"Trajectories: {trajectory_count}")
+    print(f"Points: {point_count}")
 
 
-with open(input_file, "r", encoding="utf-8") as f:
-    lines = f.readlines()
+def main():
+    parser = argparse.ArgumentParser(
+        description="Convert AdaTrace x,y .dat output back to GPS lon,lat .dat."
+    )
 
-with open(output_file, "w", encoding="utf-8") as out:
-    for line in lines:
-        line = line.strip()
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--output", required=True)
 
-        if not line:
-            continue
+    parser.add_argument(
+        "--source-crs",
+        default="EPSG:32629",
+        help="Source projected CRS. Default: EPSG:32629.",
+    )
 
-        if line.startswith("#"):
-            # Preserve trajectory ID line.
-            out.write(line + "\n")
+    parser.add_argument(
+        "--target-crs",
+        default="EPSG:4326",
+        help="Target GPS CRS. Default: EPSG:4326.",
+    )
 
-        elif line.startswith(">0:"):
-            points = line[3:].split(";")
-            converted_points = []
+    args = parser.parse_args()
 
-            for p in points:
-                p = p.strip()
-                if not p:
-                    continue
+    convert_xy_to_gps(
+        input_file=Path(args.input),
+        output_file=Path(args.output),
+        source_crs=args.source_crs,
+        target_crs=args.target_crs,
+    )
 
-                parts = p.split(",")
 
-                if len(parts) < 2:
-                    continue
-
-                shifted_x = float(parts[0])
-                shifted_y = float(parts[1])
-
-                # Undo local shift.
-                x = shifted_x + MIN_X
-                y = shifted_y + MIN_Y
-
-                # Convert projected x,y back to lon,lat.
-                lon, lat = transformer.transform(x, y)
-
-                if PLACEHOLDER_TIMESTAMP:
-                    converted_points.append(
-                        f"{lon:.6f},{lat:.6f},{PLACEHOLDER_TIMESTAMP}"
-                    )
-                else:
-                    converted_points.append(
-                        f"{lon:.6f},{lat:.6f}"
-                    )
-
-            out.write(">0:" + ";".join(converted_points) + ";\n")
-
-print("Reverse conversion complete.")
+if __name__ == "__main__":
+    main()

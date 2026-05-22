@@ -63,7 +63,11 @@ class DistributionExperiment:
     def compute_scores_no_progress(self, measure_name, measure, pairs, comparison_name, length_group="all"):
         rows = []
 
-        for t1, t2 in pairs:
+        for t1, t2 in tqdm(
+                pairs,
+                desc=f"{measure_name} {comparison_name}",
+                leave=False,
+            ):
             rows.append({
                 "measure": measure_name,
                 "comparison": comparison_name,

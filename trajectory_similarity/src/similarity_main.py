@@ -45,17 +45,52 @@ if __name__ == "__main__":
             segments_file=args.segments,
         )
 
+    print("Original trajectories:", len(original))
+    print("Synthetic trajectories:", len(synthetic))
+
+    print("Original avg points:", sum(len(t.points) for t in original) / max(len(original), 1))
+    print("Synthetic avg points:", sum(len(t.points) for t in synthetic) / max(len(synthetic), 1))
+
+    print("Original max points:", max((len(t.points) for t in original), default=0))
+    print("Synthetic max points:", max((len(t.points) for t in synthetic), default=0))
+
     stages.update(1)
 
     original = [t for t in all_trajectories if t.dataset == "original"]
     synthetic = [t for t in all_trajectories if t.dataset == "synthetic"]
 
+    #roadmap.precompute_distances_for_trajectories(original + synthetic)
+
+
+    def print_point_stats(name, trajectories):
+        counts = [len(t.points) for t in trajectories]
+        seg_counts = [len(t.segment_ids) for t in trajectories]
+
+        if not counts:
+            print(f"{name}: no trajectories")
+            return
+
+        print(f"{name} trajectories: {len(trajectories)}")
+        print(f"{name} point count min/avg/max: {min(counts)} / {sum(counts) / len(counts):.2f} / {max(counts)}")
+        print(
+            f"{name} segment count min/avg/max: {min(seg_counts)} / {sum(seg_counts) / len(seg_counts):.2f} / {max(seg_counts)}")
+
+
+    print_point_stats("Original", original)
+    print_point_stats("Synthetic", synthetic)
+
+    dp_model_normalized = args.dp_model.lower().replace("-", "_")
+
     measures = {
         "NetEDR": NetEDR(match_threshold=args.netedr_threshold),
         "NetERP": NetERP(gap_cost=args.neterp_gap_cost),
-        "TP": TP(),
         "LORS": LORS(),
     }
+
+    if dp_model_normalized == "dp_stts":
+        measures["TP"] = TP()
+    else:
+        print(f"Skipping TP for {args.dp_model}, because synthetic trajectories do not contain reliable timestamps.")
 
     stages.update(1)
 

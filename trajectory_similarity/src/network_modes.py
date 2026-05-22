@@ -5,6 +5,25 @@ from tqdm import tqdm
 from trajectory import Point
 from roadmap import RoadMap
 
+
+def downsample_sequence(sequence, max_len):
+    if max_len is None or max_len <= 0:
+        return sequence
+
+    if len(sequence) <= max_len:
+        return sequence
+
+    if max_len == 1:
+        return [sequence[0]]
+
+    indices = [
+        round(i * (len(sequence) - 1) / (max_len - 1))
+        for i in range(max_len)
+    ]
+
+    return [sequence[i] for i in indices]
+
+
 def build_network_with_osmnx(trajectories, place: str, output_dir: str):
     import osmnx as ox
 
@@ -104,12 +123,67 @@ def load_prebuilt_network(trajectories, nodes_file: str, edges_file: str, segmen
     roadmap = RoadMap.from_files(nodes_file, edges_file)
     segments = pd.read_csv(segments_file)
 
-    indexed_segments = {
-        (dataset, traj_id): group.sort_values("order")["segment_id"].astype(int).tolist()
-        for (dataset, traj_id), group in segments.groupby(["dataset", "traj_id"])
-    }
+    indexed_segments = {}
+    indexed_node_sequences = {}
 
-    for traj in tqdm(trajectories, desc="Loading prebuilt segment IDs"):
-        traj.segment_ids = indexed_segments.get((traj.dataset, traj.traj_id), [])
+    for (dataset, traj_id), group in segments.groupby(["dataset", "traj_id"]):
+        group = group.sort_values("order")
+
+        segment_ids = group["segment_id"].astype(int).tolist()
+        indexed_segments[(dataset, traj_id)] = segment_ids
+
+        node_sequence = []
+
+        if "start_node" in group.columns and "end_node" in group.columns:
+            rows = list(group.itertuples(index=False))
+
+            for idx, row in enumerate(rows):
+                start_node = int(row.start_node)
+                end_node = int(row.end_node)
+
+                if idx == 0:
+                    node_sequence.append(start_node)
+
+                node_sequence.append(end_node)
+
+        indexed_node_sequences[(dataset, traj_id)] = node_sequence
+
+    for traj in tqdm(trajectories, desc="Loading prebuilt segment IDs and node IDs"):
+        key = (traj.dataset, traj.traj_id)
+
+        traj.segment_ids = indexed_segments.get(key, [])
+
+        node_sequence = indexed_node_sequences.get(key, [])
+
+        node_sequence = downsample_sequence(node_sequence, max_len=100)
+        traj.segment_ids = downsample_sequence(traj.segment_ids, max_len=100)
+
+        if node_sequence:
+            new_points = []
+
+            original_points = traj.points
+            original_timestamps = [p.timestamp for p in original_points]
+
+            for idx, node_id in enumerate(node_sequence):
+                lon, lat = roadmap.node_positions.get(node_id, (None, None))
+
+                if lon is None or lat is None:
+                    continue
+
+                timestamp = None
+                if original_timestamps:
+                    timestamp = original_timestamps[min(idx, len(original_timestamps) - 1)]
+
+                new_points.append(
+                    Point(
+                        lon=float(lon),
+                        lat=float(lat),
+                        timestamp=timestamp,
+                        node_id=int(node_id),
+                    )
+                )
+
+            if new_points:
+                traj.points = new_points
 
     return roadmap, trajectories

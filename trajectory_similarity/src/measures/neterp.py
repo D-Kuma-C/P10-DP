@@ -1,5 +1,5 @@
 import numpy as np
-from utils.distance import point_distance
+from trajectory_similarity.src.utils.distance import point_distance
 
 
 class NetERP:

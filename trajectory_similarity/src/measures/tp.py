@@ -1,5 +1,5 @@
 import math
-from utils.distance import point_distance
+from trajectory_similarity.src.utils.distance import point_distance
 
 
 class TP:

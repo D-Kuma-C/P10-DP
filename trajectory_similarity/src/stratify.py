@@ -7,11 +7,11 @@ TRIP_GROUPS = ["small", "medium", "large"]
 def trip_length_group(length_m: float) -> str:
     length_km = length_m / 1000.0
 
-    if length_km <= 2.0:
+    if length_km <= 0.75:
         return "small"
-    if length_km <= 4.0:
+    if length_km <= 1.25:
         return "medium"
-    if length_km >= 5.0:
+    if length_km >= 2.0:
         return "large"
 
     return "medium_large_gap"

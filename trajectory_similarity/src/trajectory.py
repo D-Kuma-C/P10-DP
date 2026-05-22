@@ -33,7 +33,7 @@ class Trajectory:
         if roadmap is not None and self.segment_ids:
             return sum(roadmap.segment_lengths.get(seg_id, 0.0) for seg_id in self.segment_ids)
 
-        from utils.distance import haversine_m
+        from trajectory_similarity.src.utils.distance import haversine_m
 
         if len(self.points) < 2:
             return 0.0
