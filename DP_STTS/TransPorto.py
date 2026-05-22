@@ -140,7 +140,10 @@ def CutTrajectories():
                 j = j + 1
                 temp_u = datetime.strptime(array[j], "%Y-%m-%d %H:%M:%S")
                 j = j + 1
-                if left <= lon <= right and bottom <= lat <= top and startTime <= temp_u <= endTime:
+                point_start_time = datetime.combine(temp_u.date(), startTime.time()) # Tilføjet af P10
+                point_end_time = datetime.combine(temp_u.date(), endTime.time()) # tilføjet af P10
+
+                if left <= lon <= right and bottom <= lat <= top and point_start_time <= temp_u <= point_end_time:
                     if flag == 0:
                         flag = 1
                         output.write("#")
@@ -175,8 +178,127 @@ def CutTrajectories():
             output.write("\n")
         i = i + 2
 
+
     output.close()
     print('cutting is done')
+
+# def CutTrajectories():
+#     print("start cutting")
+#     startTime = getTimeRange()[0]
+#     endTime = getTimeRange()[1]
+#     add_seconds = timedelta(seconds=15)
+#
+#     outputfile = './data/output/TestData.txt'
+#     inputfile = './data/raw_data/Original.txt'
+#     boundary = './data/parameters/boundary.txt'
+#
+#     with open(boundary) as input:
+#         content = input.readline()
+#         array = content.split(" ")
+#         left = float(array[0])
+#         right = float(array[1])
+#         bottom = float(array[2])
+#         top = float(array[3])
+#
+#     output = open(outputfile, 'w')
+#     with open(inputfile) as input:
+#         content = input.readlines()
+#
+#     total_points = 0
+#     kept_points = 0
+#     outside_space = 0
+#     outside_time = 0
+#
+#     i = 1
+#     id = 0
+#     while i < len(content):
+#
+#         flag = 0
+#         arrayT = content[i][3:]
+#         array = re.split('[,;]', arrayT)
+#         j = 0
+#
+#         if len(array) < 4:
+#             i = i + 2
+#             continue
+#
+#         numP = 0
+#
+#         # THIS is the point loop
+#         while j < len(array):
+#             if array[j] == '\n':
+#                 break
+#             else:
+#                 lon = float(array[j])
+#                 j = j + 1
+#                 lat = float(array[j])
+#                 j = j + 1
+#                 temp_u = datetime.strptime(array[j], "%Y-%m-%d %H:%M:%S")
+#                 j = j + 1
+#
+#                 total_points += 1
+#
+#                 in_space = left <= lon <= right and bottom <= lat <= top
+#                 in_time = startTime <= temp_u <= endTime
+#
+#                 if not in_space:
+#                     outside_space += 1
+#
+#                 if not in_time:
+#                     outside_time += 1
+#
+#                 if in_space and in_time:
+#                     kept_points += 1
+#
+#                     if flag == 0:
+#                         flag = 1
+#                         output.write("#")
+#                         output.write(str(id))
+#                         output.write(":\n")
+#                         output.write('>0:')
+#                         id = id + 1
+#
+#                     if numP == 0:
+#                         cellA = CellIndex(lon, lat)
+#                         cellPre = cellA
+#                         timePre = temp_u
+#                     else:
+#                         cellA = CellIndex(lon, lat)
+#
+#                     if cellA != cellPre:
+#                         cellPre = cellA
+#                         timePre = temp_u
+#
+#                     if not (cellA == cellPre and (temp_u - timePre).seconds / 60 > para.numstep * para.timestep):
+#                         output.write(str(lon) + ",")
+#                         output.write(str(lat) + ",")
+#                         output.write(str(temp_u) + ";")
+#                         numP += 1
+#                     else:
+#                         break
+#
+#                 else:
+#                     if flag == 1:
+#                         break
+#
+#         if flag == 1:
+#             output.write("\n")
+#
+#         i = i + 2
+#
+#     output.close()
+#
+#     print("CutTrajectories debug:")
+#     print("  boundary:", left, right, bottom, top)
+#     print("  time range:", startTime, endTime)
+#     print("  raw lines:", len(content))
+#     print("  trajectories written:", id)
+#     print("  total points:", total_points)
+#     print("  kept points:", kept_points)
+#     print("  outside space:", outside_space)
+#     print("  outside time:", outside_time)
+#
+#     print('cutting is done')
 
 
 para = Parameter()

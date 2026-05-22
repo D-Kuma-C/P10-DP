@@ -58,38 +58,147 @@
         "max_match_points": 100,
         "OSRM_url": "http://localhost:5000/match/v1/driving"
     },
+    "dataset_selection": {
+        "enabled": true,
+        "dataset_name": "porto",
+        "number_of_trajectories": 5000,
+        "random_seed": 42,
+
+        "input_file": "input/data/porto/porto_time_lines-all0511_145737_p-3_d-0.05_s-40_t-15min_start-20130107_end-20140630.dat",
+
+        "output_root": "input/cleandata",
+        "reindex": true
+    },
+    "parameters": {
+        "dataset_name": "porto",
+        "epsilon_values": [0.1, 0.5, 1.0],
+        "epsilon_allocation": [0.05, 0.35, 0.5, 0.1],
+        "grid_size": 20,
+        "spatial_range": null
+    },
     "dp_methods": {
         "adatrace" : {
-            "input_path": "",
-            "output_path": "",
+            "enabled": true,
+            "project_dir": "adatrace",
+
+            "input_path": "input/cleandata/porto/porto_5000_seed_42.dat",
+            "xy_input_path": "input/cleandata/porto/porto_5000_seed_42_xy.dat",
+
+            "output_path": "input/adatrace_synthetic",
+            "gps_output_path": "input/adatrace_synthetic_gps",
+
+            "source_crs": "EPSG:4326",
+            "target_crs": "EPSG:32629",
+
             "interp": true,
-            "attacks_on": true
+            "attacks_on": true,
+            "iterations": 1
         },
         "privtrace" : {
-            "input_path": "",
-            "output_path": ""
+            "enabled": true,
+            "project_dir": "PrivTrace-main",
+            "python": "C:/Users/test/anaconda3/envs/db_code_py310/python.exe",
+            "input_path": "input/cleandata/porto/porto_5000_seed_42.dat",
+            "output_path": "input/privtrace_synthetic",
+            "epsilon_partition": [0.2, 0.6, 0.2],
+            "trajectory_count": -1
         },
         "dp-star": {
-            "input_path": "",
-            "output_path": ""
+            "enabled": true,
+            "project_dir": "DP_Star",
+            "python": "C:/Users/test/anaconda3/envs/dp-star/python.exe",
+            "input_path": "input/cleandata/porto/porto_5000_seed_42.dat",
+            "output_path": "input/dpstar_synthetic",
+            "scaling_rate": 500,
+            "n_top_grid": 20,
+            "beta_factor": 80,
+            "epsilon_allocation": [0.1111111111, 0.3333333333, 0.4444444444, 0.1111111111],
+            "synthetic_count": null
         },
         "dp-stts": {
-            "input_path": "",
-            "output_path": "",
-            "time_range": "",
-            "time_step": "",
-            "num_time_intervals": "",
-            "iterations": "",
-            "random_seed": ""
-        },
-        "parameters": {
-            "dataset_name": "",
-            "ebsilon": "",
-            "ebsilon_values": "",
-            "ebsilon_allocation": "",
-            "grid_size": "",
-            "spatial_range": ""
+            "enabled": true,
+            "project_dir": "DP_STTS",
+            "python": "C:/Users/test/anaconda3/envs/db_code_py310/python.exe",
+            "input_path": "input/cleandata/porto/porto_5000_seed_42.dat",
+            "output_path": "input/dpstts_synthetic",
+            "dataset": "Porto",
+            "cell_h": 20,
+            "cell_w": 20,
+            "time_step": 1,
+            "iterations": 1,
+            "epsilon_prefix_ratio": 0.5,
+            "full_day_time": false,
+            "random_seed": null
         }
+    },
+    "privacy_attack": {
+    "enabled": true,
+    "run_without_generation": false,
+    "project_dir": "Privacy_attack",
+    "main_script": "PrivacyAttack_main.py",
+    "python": "python",
+    "output_root": "output/Privacy",
 
-    }
+    "dataset_name": "porto",
+    "trajectory_count_label": "5000",
+
+    "attacks": ["reid", "bayesian", "partial", "outlier"],
+
+    "grid_size": 20,
+    "time_period_hours": 7.5,
+    "interval_minutes": 1,
+
+    "known_locations": 3,
+    "test_users": 3,
+    "random_state": 0,
+    "n_clusters": 4,
+
+    "vartheta": 0.1,
+    "sensitive_n": 10,
+
+    "sniff_n": 12,
+    "intersection_threshold": 5,
+
+    "top_k_neighbors": 50,
+    "n_outliers": 200,
+    "closest_threshold": 0.1,
+    "plausible_deniability_kappa": 100,
+    "plausible_deniability_beta": 0.05
+  },
+  "map_matching_synthetic": {
+    "enabled": true,
+    "script": "tools/mapmatching.py",
+    "python": "python",
+
+    "osrm_url": "http://localhost:5000/route/v1/driving",
+    "max_match_points": 100,
+
+    "start_id": 0,
+    "end_id": null,
+
+    "segments_root": "input/segments",
+
+    "overwrite_synthetic": true,
+    "overwrite_original": false,
+
+    "run_original_once": true
+  },
+  "trajectory_similarity": {
+    "enabled": true,
+    "project_dir": "trajectory_similarity",
+    "python": "python",
+    "main_script": "src/similarity_main.py",
+
+    "output_root": "output/Similarity",
+
+    "network_mode": "prebuilt",
+
+    "trajectory_count_label": "5000",
+
+    "max_pairs": 1000,
+    "random_seed": 42,
+
+    "netedr_threshold": 1000.0,
+    "neterp_gap_cost": 1.0
+  }
 }

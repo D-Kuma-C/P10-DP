@@ -44,6 +44,6 @@ def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
     print("Trajectory count: ", count)
     
 
-plot_file(r"C:\Git\P10-DP\t-drive\tdrive__files-1000508_134500_p-3_d-0.05_t-15min_start-20080202_end-20080209.dat", max_traj=MAX_TRAJECTORIES, color="blue")
+plot_file(r"/input/dpstar_synthetic/eps_0.1/test.dat", max_traj=MAX_TRAJECTORIES, color="blue")
 
-m.save(r"C:\Git\P10-DP\map-output\testing.html")
+m.save(r"C:\Users\test\Desktop\Uni\P10-DP\output\testing2.html")

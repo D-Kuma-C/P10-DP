@@ -1,10 +1,165 @@
 import math
 import random
 import time
+import argparse
+import shutil
+from pathlib import Path
+import os
+
+os.chdir(Path(__file__).resolve().parent)
+
 from parameters import Parameter
 from Processing import PreProcess
 from trans import trans
 from removeTime import removeTime
+
+
+def parse_epsilon_list(value):
+    """
+    Parse comma-separated epsilons.
+
+    Example:
+        0.5,1.0,2.0
+    """
+    return [float(v.strip()) for v in value.split(",") if v.strip()]
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Run DP-STTS with configurable parameters."
+    )
+
+    parser.add_argument(
+        "--dataset",
+        default="Porto",
+        help="Internal DP-STTS dataset label used for filenames. Default: Porto.",
+    )
+
+    parser.add_argument(
+        "--epsilons",
+        required=True,
+        help="Comma-separated epsilon values, for example: 0.5,1.0",
+    )
+
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=1,
+        help="Number of runs per epsilon. Default: 1.",
+    )
+
+    parser.add_argument(
+        "--epsilon-prefix-ratio",
+        type=float,
+        default=0.5,
+        help="Share of epsilon used for prefix/start counts. Default: 0.5.",
+    )
+
+    parser.add_argument(
+        "--output-root",
+        required=True,
+        help="Root output folder for final DP-STTS .dat files.",
+    )
+
+    parser.add_argument(
+        "--random-seed",
+        type=int,
+        default=None,
+        help="Optional random seed. If omitted, time.time() is used.",
+    )
+
+    return parser.parse_args()
+
+
+def eps_label(epsilon):
+    return f"eps_{epsilon}"
+
+
+def get_remove_time_output_path(dataset, epsilon, cellH, numtimeInterval, maxLevel, times):
+    """
+    Matches removeTime.py output naming:
+
+    ./data/output/<dataset>_<cellH>_<numtimeInterval>maxLevel<maxLevel>_totalBudget_Location<epsilon>_<times>.txt
+    """
+    return (
+        Path("data")
+        / "output"
+        / (
+            dataset
+            + "_"
+            + str(cellH)
+            + "_"
+            + str(numtimeInterval)
+            + "maxLevel"
+            + str(maxLevel)
+            + "_totalBudget_Location"
+            + str(epsilon)
+            + "_"
+            + str(times)
+            + ".txt"
+        )
+    )
+
+def get_trans_output_path(dataset, epsilon, cellH, numtimeInterval, maxLevel, times):
+    """
+    Matches trans.py output naming:
+
+    ./data/output/<dataset>_<cellH>_<numtimeInterval>_maxLevel<maxLevel>_totalBudget<epsilon>_<times>.txt
+
+    This file keeps:
+        lon,lat,time
+    """
+    return (
+        Path("data")
+        / "output"
+        / (
+            dataset
+            + "_"
+            + str(cellH)
+            + "_"
+            + str(numtimeInterval)
+            + "_maxLevel"
+            + str(maxLevel)
+            + "_totalBudget"
+            + str(epsilon)
+            + "_"
+            + str(times)
+            + ".txt"
+        )
+    )
+
+def copy_final_output_to_pipeline(output_root, epsilon, times, dataset, cellH, numtimeInterval, maxLevel):
+    output_root = Path(output_root)
+    eps_dir = output_root / eps_label(epsilon)
+    eps_dir.mkdir(parents=True, exist_ok=True)
+
+    unix_time = int(time.time())
+    final_dat = eps_dir / f"{unix_time}_dpstts_{eps_label(epsilon)}_iter_{times}.dat"
+
+    source_file = get_trans_output_path(
+        dataset=dataset,
+        epsilon=epsilon,
+        cellH=cellH,
+        numtimeInterval=numtimeInterval,
+        maxLevel=maxLevel,
+        times=times,
+    )
+
+    if not source_file.exists():
+        raise FileNotFoundError(
+            f"Expected DP-STTS final output was not found: {source_file}"
+        )
+
+    if source_file.stat().st_size == 0:
+        raise ValueError(
+            f"DP-STTS final output is empty: {source_file}"
+        )
+
+    shutil.copyfile(source_file, final_dat)
+
+    print("Copied DP-STTS final output:")
+    print(f"  from: {source_file}")
+    print(f"  to:   {final_dat}")
 
 
 class Node(object):
@@ -934,59 +1089,169 @@ def methodNew():
     writeTrajecoryM4()
 
 
-if __name__ == '__main__':
-    """
-    Steps：
-    1.Modify the parameters in the '. /data/parameters/' , 'parameters.py',
-      boundary：range of trajectory space
-      cellSize：grid division
-      time：range of trajectory time
-      timeStep：The duration of the interval(minutes)
-      
-      
-    2.The '. /data/raw_data/' folder is to store the data source files to be processed
-      Original.txt
-      
-    3.To process the data, run the PreProcess() function, passing in the following parameters:
-      dataset = 'name'
-      eps: overall privacy budget
-      times: cycle number
-    """
-    print('Start')
-    dataset = 'Porto'
-    PreProcess(dataset)
-    for eps in [1.0, 0.5]:
-        times = 1
-        while times != 2:  # Running times
+# if __name__ == '__main__':
+#     """
+#     Steps：
+#     1.Modify the parameters in the '. /data/parameters/' , 'parameters.py',
+#       boundary：range of trajectory space
+#       cellSize：grid division
+#       time：range of trajectory time
+#       timeStep：The duration of the interval(minutes)
+#
+#
+#     2.The '. /data/raw_data/' folder is to store the data source files to be processed
+#       Original.txt
+#
+#     3.To process the data, run the PreProcess() function, passing in the following parameters:
+#       dataset = 'name'
+#       eps: overall privacy budget
+#       times: cycle number
+#     """
+#     print('Start')
+#     dataset = 'Porto'
+#     PreProcess(dataset)
+#     for eps in [1.0]:
+#         times = 1
+#         while times != 2:  # Running times
+#
+#             print('Start of the ' + str(times) + 'th run')
+#             para = Parameter()
+#             para.epsilon = eps
+#             para.epsilonPrefix = (1 / 2) * para.epsilon
+#
+#             para.show()
+#
+#             hashLen = 20
+#             l = pow(2, hashLen)
+#             hashArray = HashTableS(l)
+#             number_Tra = 0
+#             count = 0
+#             s = 0
+#
+#             n = 0
+#             random.seed(time.time())
+#
+#             write = open('data/output/writeTra-our.txt', 'w')
+#             # method
+#             methodNew()
+#             write.close()
+#
+#             print('--------------------- writeTra over ---------------------')
+#             print('trans')
+#             trans(dataset, str(para.epsilon), str(para.cellH), str(para.numtimeInterval),
+#                   str(para.maxLevel), str(times))
+#             print('remove time')
+#             removeTime(dataset, str(para.epsilon), str(para.cellH), str(para.numtimeInterval),
+#                        str(para.maxLevel), str(times))
+#             times += 1
 
-            print('Start of the ' + str(times) + 'th run')
+
+if __name__ == '__main__':
+    print('Start')
+
+    args = parse_args()
+
+    dataset = args.dataset
+    epsilons = parse_epsilon_list(args.epsilons)
+
+    print("DP-STTS parameters:")
+    print(f"  dataset: {dataset}")
+    print(f"  epsilons: {epsilons}")
+    print(f"  iterations: {args.iterations}")
+    print(f"  epsilon_prefix_ratio: {args.epsilon_prefix_ratio}")
+    print(f"  output_root: {args.output_root}")
+    print(f"  random_seed: {args.random_seed}")
+
+    # Keep original DP-STTS preprocessing flow.
+    # This creates:
+    # data/output/TestData.txt
+    # data/output/<dataset>_out.txt
+    # data/output/middleFile.txt
+    # data/output/traLenFile.txt
+    PreProcess(dataset)
+
+    middle_file_path = Path("data/output/middleFile.txt")
+    if not middle_file_path.exists() or middle_file_path.stat().st_size == 0:
+        raise ValueError(
+            "middleFile.txt is missing or empty after PreProcess(dataset)."
+        )
+
+    for eps in epsilons:
+        times = 1
+
+        while times <= args.iterations:
+            print("=" * 100)
+            print(f"STARTING DP-STTS run: epsilon={eps}, iteration={times}/{args.iterations}")
+            print("=" * 100)
+
             para = Parameter()
             para.epsilon = eps
-            para.epsilonPrefix = (1 / 2) * para.epsilon
+            para.epsilonPrefix = args.epsilon_prefix_ratio * para.epsilon
 
             para.show()
 
             hashLen = 20
             l = pow(2, hashLen)
             hashArray = HashTableS(l)
+
             number_Tra = 0
             count = 0
             s = 0
-
             n = 0
-            random.seed(time.time())
+
+            if args.random_seed is None:
+                random.seed(time.time())
+            else:
+                random.seed(args.random_seed + times)
+
+            Path("data/output").mkdir(parents=True, exist_ok=True)
 
             write = open('data/output/writeTra-our.txt', 'w')
-            # method
+
             methodNew()
+
             write.close()
 
-            print('--------------------- writeTra over ---------------------')
-            print('trans')
-            trans(dataset, str(para.epsilon), str(para.cellH), str(para.numtimeInterval),
-                  str(para.maxLevel), str(times))
-            print('remove time')
-            removeTime(dataset, str(para.epsilon), str(para.cellH), str(para.numtimeInterval),
-                       str(para.maxLevel), str(times))
-            times += 1
+            write_tra_path = Path("data/output/writeTra-our.txt")
+            if not write_tra_path.exists() or write_tra_path.stat().st_size == 0:
+                raise ValueError(
+                    "DP-STTS generated an empty writeTra-our.txt."
+                )
 
+            print('--------------------- writeTra over ---------------------')
+
+            print('trans')
+            trans(
+                dataset,
+                str(para.epsilon),
+                str(para.cellH),
+                str(para.numtimeInterval),
+                str(para.maxLevel),
+                str(times),
+            )
+
+            print('remove time')
+            removeTime(
+                dataset,
+                str(para.epsilon),
+                str(para.cellH),
+                str(para.numtimeInterval),
+                str(para.maxLevel),
+                str(times),
+            )
+
+            copy_final_output_to_pipeline(
+                output_root=args.output_root,
+                epsilon=eps,
+                times=times,
+                dataset=dataset,
+                cellH=para.cellH,
+                numtimeInterval=para.numtimeInterval,
+                maxLevel=para.maxLevel,
+            )
+
+            print("=" * 100)
+            print(f"FINISHED DP-STTS run: epsilon={eps}, iteration={times}")
+            print("=" * 100)
+
+            times += 1

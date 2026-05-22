@@ -9,10 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import javax.print.DocFlavor.STRING;
+
 import org.apache.commons.math3.distribution.LaplaceDistribution;
 import org.apache.commons.math3.ml.distance.EarthMoversDistance;
 
 import edu.wlu.cs.levy.CG.KDTree;
+
 
 
 public class Main {
@@ -49,6 +52,17 @@ public class Main {
 		}
 		// return
 		return tbr;
+	}
+
+	public static class RunConfig {
+		String inputFilename = "porto_20k.dat";
+		String outputDir = ".";
+		double totalEpsilon = 1.0;
+		int iterations = 5;
+		int cellCount = 6;
+		boolean interp = true;
+		double[] budgetDistnWeights = {0.05, 0.35, 0.50, 0.10};
+		boolean attacksON = false;
 	}
 	
 	public static List<Trajectory> readTrajectories(File f) throws Exception {
@@ -439,6 +453,8 @@ public class Main {
 		double markovEMD = Evaluation.calcJSD(MarkovPrior, MarkovPosterior);
 		
 		// check if EMD > vartheta
+		System.out.println("tripEMD = " + String.valueOf(tripEMD));
+		System.out.println("markovEMD = " + String.valueOf(markovEMD));
 		if (tripEMD > VARTHETA) {
 			return false;
 		} 
@@ -506,6 +522,42 @@ public class Main {
 		
 		return tbr;
 	}
+
+	public static void printProgress(String label, int current, int total) {
+		if (total <= 0) {
+			return;
+		}
+
+		int width = 30;
+		double ratio = (double) current / (double) total;
+		int filled = (int) Math.round(width * ratio);
+
+		StringBuilder bar = new StringBuilder();
+		bar.append("\r");
+		bar.append(label);
+		bar.append(" [");
+
+		for (int i = 0; i < width; i++) {
+			if (i < filled) {
+				bar.append("=");
+			} else {
+				bar.append(" ");
+			}
+		}
+
+		bar.append("] ");
+		bar.append(String.format("%6.2f", ratio * 100.0));
+		bar.append("% ");
+		bar.append(current);
+		bar.append("/");
+		bar.append(total);
+
+		System.out.print(bar.toString());
+
+		if (current >= total) {
+			System.out.println();
+		}
+	}
 	
 	public static List<Trajectory> generateAttackResilientTrajectories (Grid grid, double[][] markovProbs,
 			TripDistribution td, LengthDistribution ld, int desiredNumberOfTrajectories, boolean attacksON,
@@ -544,6 +596,7 @@ public class Main {
 			//System.out.println("relevant subset size: " + relevantSubset.size()); // debug msg
 			if (relevantSubset.size() == 0 || evaluateBayesianAttack(TripPrior, MarkovPrior, 
 					relevantSubset, grid, VARTHETA)) {
+				System.out.println("relevantSubset size = " + String.valueOf(relevantSubset.size()));
 				bayesianAttackPass = true;
 				break;
 			} else {
@@ -644,6 +697,9 @@ public class Main {
 		} // the kd-tree is now filled
 		double[] scores = new double[synDBxy.size()];
 		for (int i = 0; i < synDBxy.size(); i++) {
+			if (i % 100 == 0 || i == synDBxy.size() - 1) {
+				printProgress("Outlier 1/9 start scores", i + 1, synDBxy.size());
+			}
 			double[] targ = new double[2];
 			targ[0] = synDBxy.get(i).getPoint(0).getX();
 			targ[1] = synDBxy.get(i).getPoint(0).getY();
@@ -662,7 +718,12 @@ public class Main {
 		//System.out.println(outliers);
 				
 		// (ii) Plausible deniability for trip start outliers
-		for (Trajectory Tout : outliers) {
+		for (int outlierIndex = 0; outlierIndex < outliers.size(); outlierIndex++) {
+			if (outlierIndex % 10 == 0 || outlierIndex == outliers.size() - 1) {
+				printProgress("Outlier 2/9 start fixing", outlierIndex + 1, outliers.size());
+			}
+
+			Trajectory Tout = outliers.get(outlierIndex);
 			// find Tclosest
 			Trajectory Tclosest = null;
 			double minDist = Double.POSITIVE_INFINITY;
@@ -720,6 +781,9 @@ public class Main {
 		} // the kd-tree is now filled
 		scores = new double[synDBxy.size()];
 		for (int i = 0; i < synDBxy.size(); i++) {
+			if (i % 100 == 0 || i == synDBxy.size() - 1) {
+				printProgress("Outlier 3/9 end scores", i + 1, synDBxy.size());
+			}
 			double[] targ = new double[2];
 			targ[0] = synDBxy.get(i).getPoint(0).getX();
 			targ[1] = synDBxy.get(i).getPoint(0).getY();
@@ -737,7 +801,12 @@ public class Main {
 		//System.out.println("Outlier count: " + outlierCnt);
 		
 		// (iv) Fix trip end outliers
-		for (Trajectory Tout : outliers) {
+		for (int outlierIndex = 0; outlierIndex < outliers.size(); outlierIndex++) {
+			if (outlierIndex % 10 == 0 || outlierIndex == outliers.size() - 1) {
+				printProgress("Outlier 4/9 end fixing", outlierIndex + 1, outliers.size());
+			}
+
+			Trajectory Tout = outliers.get(outlierIndex);
 			// find Tclosest
 			Trajectory Tclosest = null;
 			double minDist = Double.POSITIVE_INFINITY;
@@ -793,6 +862,9 @@ public class Main {
 		} // the kd-tree is now filled
 		scores = new double[synDBxy.size()];
 		for (int i = 0; i < synDBxy.size(); i++) {
+			if (i % 100 == 0 || i == synDBxy.size() - 1) {
+				printProgress("Outlier 5/9 length scores", i + 1, synDBxy.size());
+			}
 			double[] targ = new double[1];
 			targ[0] = synDBxy.get(i).getDistanceTravelled();
 			List<Integer> nbrIndexes = kd.nearest(targ, TOP_K_NEIGHBORS);
@@ -817,7 +889,12 @@ public class Main {
 				mindd = thistrajdist;
 		}
 		double maxPossibleDistance = maxdd-mindd;
-		for (Trajectory Tout : outliers) {
+		for (int outlierIndex = 0; outlierIndex < outliers.size(); outlierIndex++) {
+			if (outlierIndex % 10 == 0 || outlierIndex == outliers.size() - 1) {
+				printProgress("Outlier 6/9 length fixing", outlierIndex + 1, outliers.size());
+			}
+
+			Trajectory Tout = outliers.get(outlierIndex);
 			// find Tclosest
 			Trajectory Tclosest = null;
 			double minDist = Double.POSITIVE_INFINITY;
@@ -883,6 +960,9 @@ public class Main {
         }
 		outliers = new ArrayList<Trajectory>();
 		for (int i = 0; i < synDetailed.size(); i++) {
+			if (i % 100 == 0 || i == synDetailed.size() - 1) {
+				printProgress("Outlier 7/9 location search", i + 1, synDetailed.size());
+			}
 			GridTrajectory cand = synDetailed.get(i);
 			for (Cell c : cand.getCells()) {
 				if (rareCells.contains(c))
@@ -894,7 +974,12 @@ public class Main {
 		//System.out.println("location visiting outlier cnt: " + outliers.size());
 
 		// (viii) Fix location visit outliers
-		for (Trajectory Tout : outliers) {
+		for (int outlierIndex = 0; outlierIndex < outliers.size(); outlierIndex++) {
+			if (outlierIndex % 10 == 0 || outlierIndex == outliers.size() - 1) {
+				printProgress("Outlier 8/9 location fixing", outlierIndex + 1, outliers.size());
+			}
+
+			Trajectory Tout = outliers.get(outlierIndex);
 			// find Tclosest
 			Trajectory Tclosest = null;
 			double minDist = Double.POSITIVE_INFINITY;
@@ -933,17 +1018,56 @@ public class Main {
 
 		// (ix) Add new trajectories in place of the deleted trajectories
 		int newcountrequired = desiredNumberOfTrajectories - synDBxy.size();
-		for (int i = 0; i < newcountrequired; i++) {
+		// ORIGINAL ADATRACE CODE
+		// for (int i = 0; i < newcountrequired; i++) {
+		// 	GridTrajectory newtraj = generateSyntheticTrajs(grid, td, ld, markovProbs, 1).get(0);
+		// 	if (newtraj.getCells().contains(SNIFFREGION) || newtraj.getCells().contains(SENSITIVEZONE)) {
+		// 		i--;
+		// 	} else {
+		// 		List<GridTrajectory> toSend = new ArrayList<GridTrajectory>();
+		// 		toSend.add(newtraj);
+		// 		Trajectory toAdd = Main.convertGridTrajToTraj(toSend, grid).get(0);
+		// 		synDBxy.add(toAdd);
+		// 	}
+		// }
+		int addedTrajectories = 0;
+		int attempts = 0;
+
+		while (addedTrajectories < newcountrequired) {
+			attempts++;
+
 			GridTrajectory newtraj = generateSyntheticTrajs(grid, td, ld, markovProbs, 1).get(0);
+
 			if (newtraj.getCells().contains(SNIFFREGION) || newtraj.getCells().contains(SENSITIVEZONE)) {
-				i--;
-			} else {
-				List<GridTrajectory> toSend = new ArrayList<GridTrajectory>();
-				toSend.add(newtraj);
-				Trajectory toAdd = Main.convertGridTrajToTraj(toSend, grid).get(0);
-				synDBxy.add(toAdd);
+				continue;
+			}
+
+			List<GridTrajectory> toSend = new ArrayList<GridTrajectory>();
+			toSend.add(newtraj);
+
+			Trajectory toAdd = Main.convertGridTrajToTraj(toSend, grid).get(0);
+			synDBxy.add(toAdd);
+
+			addedTrajectories++;
+
+			if (addedTrajectories % 10 == 0 || addedTrajectories == newcountrequired) {
+				printProgress(
+					"Outlier 9/9 replacement generation",
+					addedTrajectories,
+					newcountrequired
+				);
 			}
 		}
+
+		System.out.println(
+			"Replacement trajectories generated: "
+			+ addedTrajectories
+			+ "/"
+			+ newcountrequired
+			+ " after "
+			+ attempts
+			+ " attempts."
+		);
 		System.out.println("Outlier leakage defense - OK!");
 		// Attack 3 ends
 		
@@ -966,11 +1090,11 @@ public class Main {
 	 * Privacy budget distribution (see budgetDistnWeights)
 	 */
 	public static List<Trajectory> Synthesize_Trajectories (List<Trajectory> originalDatabase,
-			double totalEpsilon, boolean attacksON) throws Exception {
+			double totalEpsilon, boolean attacksON, int cellCount, boolean interp, double[] budgetDistnWeights) throws Exception {
 		// Hardcoded parameters - BEGIN
-		boolean interp = true; // interpolate cells so that every move is to adjacent cell
-		int cellCount = 6;
-		double[] budgetDistnWeights = {0.05, 0.35, 0.50, 0.10}; // grid, Markov, trip, length
+		// boolean interp = true; // interpolate cells so that every move is to adjacent cell
+		// int cellCount = 6;
+		// double[] budgetDistnWeights = {0.05, 0.35, 0.50, 0.10}; // grid = 0.05, Markov = 0.35, trip = 50, length = 0.10
 		// Hardcoded parameters - END
 		
 		// Trajectory synthesis - core components - BEGIN
@@ -1002,26 +1126,138 @@ public class Main {
 		return syntheticDB;
 	}
 	
+	public static RunConfig parseArgs(String[] args) {
+		RunConfig config = new RunConfig();
+
+		for (int i = 0; i < args.length; i++) {
+			String arg = args[i];
+
+			if (arg.equals("--input")) {
+				config.inputFilename = args[++i];
+			}
+
+			else if (arg.equals("--output-dir")) {
+				config.outputDir = args[++i];
+			}
+
+			else if (arg.equals("--epsilon")) {
+				config.totalEpsilon = Double.parseDouble(args[++i]);
+			}
+
+			else if (arg.equals("--iterations")) {
+				config.iterations = Integer.parseInt(args[++i]);
+			}
+
+			else if (arg.equals("--cell-count")) {
+				config.cellCount = Integer.parseInt(args[++i]);
+			}
+
+			else if (arg.equals("--interp")) {
+				config.interp = Boolean.parseBoolean(args[++i]);
+			}
+
+			else if (arg.equals("--attacks-on")) {
+				config.attacksON = Boolean.parseBoolean(args[++i]);
+			}
+
+			else if (arg.equals("--budget-weights")) {
+				String[] parts = args[++i].split(",");
+
+				if (parts.length != 4) {
+					throw new IllegalArgumentException(
+						"--budget-weights must contain 4 comma-separated values: grid,markov,trip,length"
+					);
+				}
+
+				config.budgetDistnWeights = new double[4];
+
+				double sum = 0.0;
+				for (int j = 0; j < 4; j++) {
+					config.budgetDistnWeights[j] = Double.parseDouble(parts[j]);
+					sum += config.budgetDistnWeights[j];
+				}
+
+				if (Math.abs(sum - 1.0) > 0.000001) {
+					throw new IllegalArgumentException(
+						"--budget-weights must sum to 1.0"
+					);
+				}
+			}
+
+			else {
+				throw new IllegalArgumentException("Unknown argument: " + arg);
+			}
+		}
+
+		return config;
+	}
 	
 	public static void main(String[] args) throws Exception {
 		
 		// PART 0 - PARAMETERS
-		String inputFilename = "brinkhoff.dat";  // file name/path for actual trajectory database
-		double totalEpsilon = 1.0;  // total privacy budget (epsilon)
-		boolean attacksON = false;  // want to defend against attacks? (Section 3.3)
-		// End of Part 0
+		// String inputFilename = "porto_20k.dat";  // file name/path for actual trajectory database
+		// double totalEpsilon = 1.0;  // total privacy budget (epsilon)
+		// boolean attacksON = false;  // want to defend against attacks? (Section 3.3)
+		// // End of Part 0
 		
-		// Part 1: Read actual trajectory database
-		List<Trajectory> originalDatabase = readTrajectories(new File(inputFilename));
-		// End of part 1
+		// // Part 1: Read actual trajectory database
+		// List<Trajectory> originalDatabase = readTrajectories(new File(inputFilename));
+		// // End of part 1
 		
-		// Part 2: Generate synthetic trajectory database - repeat N times
-		for (int i = 0; i < 5; i++) {
-			List<Trajectory> syntheticDatabase = 
-					Synthesize_Trajectories(originalDatabase, totalEpsilon, attacksON);
-			String outputFileName = inputFilename + "-eps" + totalEpsilon + "-iteration" + i + ".dat";
+		// // Part 2: Generate synthetic trajectory database - repeat N times
+		// for (int i = 0; i < 5; i++) {
+		// 	List<Trajectory> syntheticDatabase = 
+		// 			Synthesize_Trajectories(originalDatabase, totalEpsilon, attacksON);
+		// 	String outputFileName = inputFilename + "-eps" + totalEpsilon + "-iteration" + i + ".dat";
+		// 	Main.writeToFile(syntheticDatabase, outputFileName);
+		// 	System.out.println("Done! Wrote trajectories to file: " + outputFileName);	
+		// }
+
+		RunConfig config = parseArgs(args);
+
+		File outputDirectory = new File(config.outputDir);
+		if (!outputDirectory.exists()) {
+			outputDirectory.mkdirs();
+		}
+
+		System.out.println("AdaTrace parameters:");
+		System.out.println("inputFilename = " + config.inputFilename);
+		System.out.println("outputDir = " + config.outputDir);
+		System.out.println("totalEpsilon = " + config.totalEpsilon);
+		System.out.println("iterations = " + config.iterations);
+		System.out.println("cellCount = " + config.cellCount);
+		System.out.println("interp = " + config.interp);
+		System.out.println("budgetDistnWeights = " + Arrays.toString(config.budgetDistnWeights));
+		System.out.println("attacksON = " + config.attacksON);
+
+		List<Trajectory> originalDatabase = readTrajectories(new File(config.inputFilename));
+
+		String inputBaseName = new File(config.inputFilename).getName();
+
+		for (int i = 0; i < config.iterations; i++) {
+			List<Trajectory> syntheticDatabase =
+					Synthesize_Trajectories(
+							originalDatabase,
+							config.totalEpsilon,
+							config.attacksON,
+							config.cellCount,
+							config.interp,
+							config.budgetDistnWeights
+					);
+
+			String outputFileName =
+					config.outputDir
+					+ File.separator
+					+ inputBaseName
+					+ "-eps"
+					+ config.totalEpsilon
+					+ "-iteration"
+					+ i
+					+ ".dat";
+
 			Main.writeToFile(syntheticDatabase, outputFileName);
-			System.out.println("Done! Wrote trajectories to file: " + outputFileName);	
+
+			System.out.println("Done! Wrote trajectories to file: " + outputFileName);
 		}
 		
 	}
