@@ -38,52 +38,52 @@ def main():
         if selected_dataset is not None:
             print(f"\nSelected dataset ready: {selected_dataset}")
 
-        # if dp_methods["adatrace"].get("enabled", False):
-        #     if not privacy_only:
-        #         run_adatrace_pipeline(ROOT_DIR, config)
-        #         # Converts AdaTrace x,y synthetic output into lon,lat copies
-        #         # for map-matching and trajectory similarity.
-        #         convert_adatrace_outputs_to_gps(ROOT_DIR, config)
-        #         run_mapmatching_for_method(ROOT_DIR, config, "adatrace")
-        #
-        #     if privacy_enabled:
-        #         run_privacy_attacks_for_adatrace(ROOT_DIR, config)
-        #
-        #     if similarity_enabled:
-        #         run_similarity_for_method(ROOT_DIR, config, "adatrace")
-        #
-        # if dp_methods["dp-star"].get("enabled", False):
-        #     if not privacy_only:
-        #         run_dpstar_pipeline(ROOT_DIR, config)
-        #         run_mapmatching_for_method(ROOT_DIR, config, "dp-star")
-        #
-        #     if privacy_enabled:
-        #         run_privacy_attacks_for_dpstar(ROOT_DIR, config)
-        #
-        #     if similarity_enabled:
-        #         run_similarity_for_method(ROOT_DIR, config, "dp-star")
-        #
-        # if dp_methods["dp-stts"].get("enabled", False):
-        #     if not privacy_only:
-        #         run_dpstts_pipeline(ROOT_DIR, config)
-        #         run_mapmatching_for_method(ROOT_DIR, config, "dp-stts")
-        #
-        #     if privacy_enabled:
-        #         run_privacy_attacks_for_dpstts(ROOT_DIR, config)
-        #
-        #     if similarity_enabled:
-        #         run_similarity_for_method(ROOT_DIR, config, "dp-stts")
-        #
-        # if dp_methods["privtrace"].get("enabled", False):
-        #     if not privacy_only:
-        #         run_privtrace_pipeline(ROOT_DIR, config)
-        #         run_mapmatching_for_method(ROOT_DIR, config, "privtrace")
-        #
-        #     if privacy_enabled:
-        #         run_privacy_attacks_for_privtrace(ROOT_DIR, config)
-        #
-        #     if similarity_enabled:
-        #         run_similarity_for_method(ROOT_DIR, config, "privtrace")
+        if dp_methods["adatrace"].get("enabled", False):
+            if not privacy_only:
+                run_adatrace_pipeline(ROOT_DIR, config)
+                # Converts AdaTrace x,y synthetic output into lon,lat copies
+                # for map-matching and trajectory similarity.
+                convert_adatrace_outputs_to_gps(ROOT_DIR, config)
+                run_mapmatching_for_method(ROOT_DIR, config, "adatrace")
+
+            if privacy_enabled:
+                run_privacy_attacks_for_adatrace(ROOT_DIR, config)
+
+            if similarity_enabled:
+                run_similarity_for_method(ROOT_DIR, config, "adatrace")
+
+        if dp_methods["dp-star"].get("enabled", False):
+            if not privacy_only:
+                run_dpstar_pipeline(ROOT_DIR, config)
+                run_mapmatching_for_method(ROOT_DIR, config, "dp-star")
+
+            if privacy_enabled:
+                run_privacy_attacks_for_dpstar(ROOT_DIR, config)
+
+            if similarity_enabled:
+                run_similarity_for_method(ROOT_DIR, config, "dp-star")
+
+        if dp_methods["dp-stts"].get("enabled", False):
+            if not privacy_only:
+                run_dpstts_pipeline(ROOT_DIR, config)
+                run_mapmatching_for_method(ROOT_DIR, config, "dp-stts")
+
+            if privacy_enabled:
+                run_privacy_attacks_for_dpstts(ROOT_DIR, config)
+
+            if similarity_enabled:
+                run_similarity_for_method(ROOT_DIR, config, "dp-stts")
+
+        if dp_methods["privtrace"].get("enabled", False):
+            if not privacy_only:
+                run_privtrace_pipeline(ROOT_DIR, config)
+                run_mapmatching_for_method(ROOT_DIR, config, "privtrace")
+
+            if privacy_enabled:
+                run_privacy_attacks_for_privtrace(ROOT_DIR, config)
+
+            if similarity_enabled:
+                run_similarity_for_method(ROOT_DIR, config, "privtrace")
 
     except subprocess.CalledProcessError as e:
         print(f"\nCommand failed with exit code {e.returncode}")

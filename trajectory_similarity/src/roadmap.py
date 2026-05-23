@@ -1,6 +1,7 @@
 import pandas as pd
 import networkx as nx
 from tqdm import tqdm
+from collections import OrderedDict
 
 
 class RoadMap:
@@ -9,8 +10,19 @@ class RoadMap:
         self.segment_lengths = {}
         self.segment_to_nodes = {}
         self.node_positions = {}
+
+        # Small pair cache.
         self._distance_cache = {}
-        self._source_distance_cache = {}
+
+        # Source-node cache, but bounded.
+        self._source_distance_cache = OrderedDict()
+
+        # Important for memory:
+        # Distances beyond this are treated as "far away".
+        self.max_distance_m = 10000.0
+
+        # Number of source-node Dijkstra results to keep in memory.
+        self.max_cached_sources = 128
 
     @classmethod
     def from_files(cls, nodes_file: str, edges_file: str):
@@ -61,44 +73,38 @@ class RoadMap:
         node_a = int(node_a)
         node_b = int(node_b)
 
-        if node_a not in self._source_distance_cache:
-            try:
-                self._source_distance_cache[node_a] = nx.single_source_dijkstra_path_length(
-                    self.graph,
-                    node_a,
-                    weight="weight",
-                )
-            except nx.NodeNotFound:
-                self._source_distance_cache[node_a] = {}
+        # Pair-level cache.
+        pair_key = (node_a, node_b) if node_a <= node_b else (node_b, node_a)
+        if pair_key in self._distance_cache:
+            return self._distance_cache[pair_key]
 
-        return float(self._source_distance_cache[node_a].get(node_b, float("inf")))
-
-    def precompute_distances_for_trajectories(self, trajectories):
-        node_ids = set()
-
-        for traj in trajectories:
-            for point in traj.points:
-                if point.node_id is not None:
-                    node_ids.add(int(point.node_id))
-
-        node_ids = sorted(node_ids)
-
-        print(f"Precomputing shortest-path distances for {len(node_ids)} unique nodes...")
-
-        for source in tqdm(node_ids, desc="Precomputing node distances"):
+        # Source-level cache with LRU behavior.
+        if node_a in self._source_distance_cache:
+            lengths = self._source_distance_cache.pop(node_a)
+            self._source_distance_cache[node_a] = lengths
+        else:
             try:
                 lengths = nx.single_source_dijkstra_path_length(
                     self.graph,
-                    source,
+                    node_a,
+                    cutoff=self.max_distance_m,
                     weight="weight",
                 )
             except nx.NodeNotFound:
-                continue
+                lengths = {}
 
-            for target in node_ids:
-                key = (source, target) if source <= target else (target, source)
+            self._source_distance_cache[node_a] = lengths
 
-                if key not in self._distance_cache:
-                    self._distance_cache[key] = float(lengths.get(target, float("inf")))
+            while len(self._source_distance_cache) > self.max_cached_sources:
+                self._source_distance_cache.popitem(last=False)
 
-        print(f"Distance cache size: {len(self._distance_cache)}")
+        # If not reachable within cutoff, treat as far away.
+        dist = float(lengths.get(node_b, self.max_distance_m))
+
+        self._distance_cache[pair_key] = dist
+
+        # Also bound pair cache.
+        if len(self._distance_cache) > 500000:
+            self._distance_cache.clear()
+
+        return dist

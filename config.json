@@ -145,7 +145,7 @@
     "attacks": ["reid", "bayesian", "partial", "outlier"],
 
     "grid_size": 20,
-    "time_period_hours": 7.5,
+    "time_period_hours": 7,
     "interval_minutes": 1,
 
     "known_locations": 3,
@@ -195,7 +195,7 @@
 
     "trajectory_count_label": "5000",
 
-    "max_pairs": 1000,
+    "max_pairs": 100,
     "random_seed": 42,
 
     "netedr_threshold": 1000.0,

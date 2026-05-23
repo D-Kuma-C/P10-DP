@@ -647,7 +647,6 @@ DP_STTS/original/neighborFile_20.txt
 *.pyc
 /input/privtrace_synthetic
 /DP_STTS/data/raw_data
-/output
 /map-output
 /tdrive
 /PrivTrace-main/datasets
