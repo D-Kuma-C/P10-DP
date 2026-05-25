@@ -308,7 +308,7 @@ def parse_args():
     parser.add_argument(
         "--plausible-deniability-sample-size",
         type=int,
-        default=100,
+        default=1000,
         help=(
             "Number of original trajectories sampled for outlier plausible-deniability checks. "
             "Use 0 or negative to compare against all originals."

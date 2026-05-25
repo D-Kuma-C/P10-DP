@@ -206,7 +206,7 @@ def run_privacy_attack_for_file(
             str(privacy_cfg.get("plausible_deniability_beta", 0.05)),
 
             "--plausible-deniability-sample-size",
-            str(privacy_cfg.get("plausible_deniability_sample_size", 100)),
+            str(privacy_cfg.get("plausible_deniability_sample_size", 1000)),
         ]
 
         print("\nRunning privacy attack...")
