@@ -306,6 +306,16 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--plausible-deniability-sample-size",
+        type=int,
+        default=100,
+        help=(
+            "Number of original trajectories sampled for outlier plausible-deniability checks. "
+            "Use 0 or negative to compare against all originals."
+        ),
+    )
+
+    parser.add_argument(
         "--exact-adatrace",
         action=argparse.BooleanOptionalAction,
         default=True,

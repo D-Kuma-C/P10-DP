@@ -343,6 +343,8 @@ def run_outlier_leakage(args):
         plausible_deniability_kappa=args.plausible_deniability_kappa,
         plausible_deniability_beta=args.plausible_deniability_beta,
         exact_adatrace=args.exact_adatrace,
+        plausible_deniability_sample_size=args.plausible_deniability_sample_size,
+        random_state=args.random_state,
         mutate_like_java_between_stages=args.mutate_like_java_between_stages,
         show_progress_inner=args.outlier_show_progress_inner,
     )

@@ -61,7 +61,7 @@
     "dataset_selection": {
         "enabled": true,
         "dataset_name": "porto",
-        "number_of_trajectories": 5000,
+        "number_of_trajectories": 10000,
         "random_seed": 42,
 
         "input_file": "input/data/porto/porto_time_lines-all0511_145737_p-3_d-0.05_s-40_t-15min_start-20130107_end-20140630.dat",
@@ -81,8 +81,8 @@
             "enabled": true,
             "project_dir": "adatrace",
 
-            "input_path": "input/cleandata/porto/porto_5000_seed_42.dat",
-            "xy_input_path": "input/cleandata/porto/porto_5000_seed_42_xy.dat",
+            "input_path": "input/cleandata/porto/porto_10000_seed_42.dat",
+            "xy_input_path": "input/cleandata/porto/porto_10000_seed_42_xy.dat",
 
             "output_path": "input/adatrace_synthetic",
             "gps_output_path": "input/adatrace_synthetic_gps",
@@ -97,8 +97,8 @@
         "privtrace" : {
             "enabled": true,
             "project_dir": "PrivTrace-main",
-            "python": "C:/Users/test/anaconda3/envs/db_code_py310/python.exe",
-            "input_path": "input/cleandata/porto/porto_5000_seed_42.dat",
+            "python": "C:/Users/Trailblaze/anaconda3/envs/db_code_py310/python.exe",
+            "input_path": "input/cleandata/porto/porto_10000_seed_42.dat",
             "output_path": "input/privtrace_synthetic",
             "epsilon_partition": [0.2, 0.6, 0.2],
             "trajectory_count": -1
@@ -106,8 +106,8 @@
         "dp-star": {
             "enabled": true,
             "project_dir": "DP_Star",
-            "python": "C:/Users/test/anaconda3/envs/dp-star/python.exe",
-            "input_path": "input/cleandata/porto/porto_5000_seed_42.dat",
+            "python": "C:/Users/Trailblaze/anaconda3/envs/dp-star/python.exe",
+            "input_path": "input/cleandata/porto/porto_10000_seed_42.dat",
             "output_path": "input/dpstar_synthetic",
             "scaling_rate": 500,
             "n_top_grid": 20,
@@ -118,8 +118,8 @@
         "dp-stts": {
             "enabled": true,
             "project_dir": "DP_STTS",
-            "python": "C:/Users/test/anaconda3/envs/db_code_py310/python.exe",
-            "input_path": "input/cleandata/porto/porto_5000_seed_42.dat",
+            "python": "C:/Users/Trailblaze/anaconda3/envs/db_code_py310/python.exe",
+            "input_path": "input/cleandata/porto/porto_10000_seed_42.dat",
             "output_path": "input/dpstts_synthetic",
             "dataset": "Porto",
             "cell_h": 20,
@@ -140,7 +140,7 @@
     "output_root": "output/Privacy",
 
     "dataset_name": "porto",
-    "trajectory_count_label": "5000",
+    "trajectory_count_label": "10000",
 
     "attacks": ["reid", "bayesian", "partial", "outlier"],
 
@@ -159,11 +159,12 @@
     "sniff_n": 12,
     "intersection_threshold": 5,
 
-    "top_k_neighbors": 50,
-    "n_outliers": 200,
+    "top_k_neighbors": 20,
+    "n_outliers": 20,
     "closest_threshold": 0.1,
-    "plausible_deniability_kappa": 100,
-    "plausible_deniability_beta": 0.05
+    "plausible_deniability_kappa": 10,
+    "plausible_deniability_beta": 0.05,
+    "plausible_deniability_sample_size": 1000
   },
   "map_matching_synthetic": {
     "enabled": true,
@@ -193,7 +194,7 @@
 
     "network_mode": "prebuilt",
 
-    "trajectory_count_label": "5000",
+    "trajectory_count_label": "10000",
 
     "max_pairs": 50,
     "random_seed": 42,
