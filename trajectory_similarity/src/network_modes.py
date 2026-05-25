@@ -155,8 +155,8 @@ def load_prebuilt_network(trajectories, nodes_file: str, edges_file: str, segmen
 
         node_sequence = indexed_node_sequences.get(key, [])
 
-        node_sequence = downsample_sequence(node_sequence, max_len=100)
-        traj.segment_ids = downsample_sequence(traj.segment_ids, max_len=100)
+        node_sequence = downsample_sequence(node_sequence, max_len=50)
+        traj.segment_ids = downsample_sequence(traj.segment_ids, max_len=50)
 
         if node_sequence:
             new_points = []

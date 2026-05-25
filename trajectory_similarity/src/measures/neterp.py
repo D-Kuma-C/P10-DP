@@ -28,7 +28,9 @@ class NetERP:
 
         for i in range(1, m + 1):
             for j in range(1, n + 1):
-                match_cost = dp[i - 1, j - 1] + point_distance(ps1[i - 1], ps2[j - 1], roadmap)
+                match_cost = dp[i - 1, j - 1] + (
+                        point_distance(ps1[i - 1], ps2[j - 1], roadmap) / 1000.0
+                )
                 delete_cost = dp[i - 1, j] + self.gap_cost
                 insert_cost = dp[i, j - 1] + self.gap_cost
                 dp[i, j] = min(match_cost, delete_cost, insert_cost)

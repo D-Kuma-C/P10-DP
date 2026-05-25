@@ -195,7 +195,7 @@
 
     "trajectory_count_label": "5000",
 
-    "max_pairs": 100,
+    "max_pairs": 50,
     "random_seed": 42,
 
     "netedr_threshold": 1000.0,

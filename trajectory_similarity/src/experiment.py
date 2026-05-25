@@ -38,7 +38,55 @@ class DistributionExperiment:
         random.seed(random_seed)
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(os.path.join(self.output_dir, "summaries"), exist_ok=True)
+        self.baseline_dir = os.path.join(self.output_dir, "baselines")
+        os.makedirs(self.baseline_dir, exist_ok=True)
         for measure_name in self.measures: os.makedirs(os.path.join(self.output_dir, measure_name), exist_ok=True)
+
+    def baseline_path(self, measure_name: str) -> str:
+        filename = (
+            f"{self.dataset_name}_{self.trajectory_count_label}_"
+            f"{measure_name}_original_vs_original_"
+            f"pairs_{self.max_pairs}.csv"
+        )
+
+        return os.path.join(self.baseline_dir, filename)
+
+    def compute_or_load_original_baseline(self, measure_name, measure):
+        baseline_path = self.baseline_path(measure_name)
+
+        if os.path.exists(baseline_path):
+            print(f"Loading cached O-O baseline: {baseline_path}")
+            df = pd.read_csv(baseline_path)
+
+            # Rewrite metadata so the baseline can be included in the current
+            # DP-method/epsilon output file.
+            df["epsilon"] = self.epsilon
+            df["epsilon_label"] = self.epi_label
+            df["dp_model"] = self.dp_model
+            df["trajectory_count_label"] = self.trajectory_count_label
+            df["dataset_name"] = self.dataset_name
+            df["length_group"] = "all"
+
+            return df.to_dict("records")
+
+        print(f"Computing O-O baseline for {measure_name}...")
+        pairs = self.sample_pairs(self.original, self.original, same_dataset=True)
+
+        rows = self.compute_scores_no_progress(
+            measure_name=measure_name,
+            measure=measure,
+            pairs=pairs,
+            comparison_name="original_vs_original",
+        )
+
+        baseline_df = pd.DataFrame(rows)
+
+        # Save with neutral metadata. It will be rewritten when loaded.
+        baseline_df.to_csv(baseline_path, index=False)
+        print(f"Saved O-O baseline: {baseline_path}")
+
+        return rows
+
 
     def measure_path(self, measure_name: str, result_type: str) -> str:
         filename = f"{self.file_stub}.{result_type}.csv"
@@ -118,8 +166,15 @@ class DistributionExperiment:
         for measure_name, measure in tqdm(measure_items, desc="Distribution measures"):
             rows = []
 
+            # O-O is independent of the DP method and epsilon, so cache it.
+            rows.extend(
+                self.compute_or_load_original_baseline(
+                    measure_name=measure_name,
+                    measure=measure,
+                )
+            )
+
             comparison_specs = [
-                ("original_vs_original", self.sample_pairs(self.original, self.original, same_dataset=True)),
                 ("original_vs_synthetic", self.sample_pairs(self.original, self.synthetic, same_dataset=False)),
                 ("synthetic_vs_synthetic", self.sample_pairs(self.synthetic, self.synthetic, same_dataset=True)),
             ]

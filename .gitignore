@@ -655,3 +655,10 @@ DP_STTS/original/neighborFile_20.txt
 /input/data/porto
 /DP_STTS/data/raw_data
 config.json
+/input/adatrace_synthetic
+/input/adatrace_synthetic_gps
+/input/segments
+/output/similarity/lors
+/output/similarity/netedr
+/output/similarity/neterp
+/output/similarity/summaries
