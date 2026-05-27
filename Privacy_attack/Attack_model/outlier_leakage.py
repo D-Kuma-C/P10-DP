@@ -3,6 +3,7 @@ from __future__ import annotations
 from math import sqrt
 from typing import Any, Dict, List, Optional
 from tqdm import tqdm
+import random
 
 from geometry import Grid, Trajectory, euclidean_dist, get_distance_travelled
 from grid_conversion import convert_all_to_grid_trajs
@@ -15,6 +16,17 @@ from outlier_utils import (
     start_point,
 )
 from trajectory_metrics import calculate_dtw
+
+
+def sample_originals_for_plausible_deniability(original_trajs, sample_size, random_state):
+    if sample_size is None or sample_size <= 0:
+        return original_trajs
+
+    if len(original_trajs) <= sample_size:
+        return original_trajs
+
+    rng = random.Random(random_state)
+    return rng.sample(original_trajs, sample_size)
 
 
 def _progress(iterable, show_progress: bool, desc: str, total: Optional[int] = None, leave: bool = True):
@@ -256,6 +268,8 @@ def outlier_leakage_score_only(
     exact_adatrace: bool = True,
     mutate_like_java_between_stages: bool = True,
     show_progress_inner: bool = False,
+    plausible_deniability_sample_size: Optional[int] = None,
+    random_state: int = 0,
 ) -> Dict[str, Any]:
     """
     Score-only Python version of AdaTrace Outlier Leakage Defense.
@@ -273,41 +287,63 @@ def outlier_leakage_score_only(
     working_syn = list(syn_xy)
     original_count = len(syn_xy)
     max_possible_xy_distance = _max_possible_xy_distance(orig_xy)
+    pd_orig_xy = sample_originals_for_plausible_deniability(
+        orig_xy,
+        sample_size=plausible_deniability_sample_size,
+        random_state=random_state,
+    )
+
+    print(
+        "Outlier plausible-deniability original sample:",
+        f"{len(pd_orig_xy)} / {len(orig_xy)}"
+    )
     stages = []
     removed_by_stage = []
     index_note = ("Indices are relative to the working synthetic dataset at each stage, "
                   "not stable original syn_xy indices, when mutate_like_java_between_stages=True.")
 
-    start_summary = _run_point_stage("start", "start", orig_xy, working_syn, top_k_neighbors, n_outliers,
-                                     closest_threshold, plausible_deniability_kappa, plausible_deniability_beta,
-                                     exact_adatrace, max_possible_xy_distance, show_progress_inner)
+    start_summary = _run_point_stage(
+        "start", "start", pd_orig_xy, working_syn, top_k_neighbors, n_outliers,
+        closest_threshold, plausible_deniability_kappa, plausible_deniability_beta,
+        exact_adatrace, max_possible_xy_distance, show_progress_inner
+    )
+
     stages.append(start_summary)
     if mutate_like_java_between_stages:
         failed = start_summary["failed_indices_unique"]
         removed_by_stage.append({"stage": "start", "working_indices_removed": failed})
         working_syn = _remove_failed_from_working_set(working_syn, failed)
 
-    end_summary = _run_point_stage("end", "end", orig_xy, working_syn, top_k_neighbors, n_outliers,
-                                   closest_threshold, plausible_deniability_kappa, plausible_deniability_beta,
-                                   exact_adatrace, max_possible_xy_distance, show_progress_inner)
+    end_summary = _run_point_stage(
+        "end", "end", pd_orig_xy, working_syn, top_k_neighbors, n_outliers,
+        closest_threshold, plausible_deniability_kappa, plausible_deniability_beta,
+        exact_adatrace, max_possible_xy_distance, show_progress_inner
+    )
+
     stages.append(end_summary)
     if mutate_like_java_between_stages:
         failed = end_summary["failed_indices_unique"]
         removed_by_stage.append({"stage": "end", "working_indices_removed": failed})
         working_syn = _remove_failed_from_working_set(working_syn, failed)
 
-    length_summary = _run_length_stage(orig_xy, working_syn, top_k_neighbors, n_outliers // 2,
-                                       closest_threshold, plausible_deniability_kappa, plausible_deniability_beta,
-                                       exact_adatrace, show_progress_inner)
+    length_summary = _run_length_stage(
+        pd_orig_xy, working_syn, top_k_neighbors, n_outliers // 2,
+        closest_threshold, plausible_deniability_kappa, plausible_deniability_beta,
+        exact_adatrace, show_progress_inner
+    )
+
     stages.append(length_summary)
     if mutate_like_java_between_stages:
         failed = length_summary["failed_indices_unique"]
         removed_by_stage.append({"stage": "length", "working_indices_removed": failed})
         working_syn = _remove_failed_from_working_set(working_syn, failed)
 
-    location_summary = _run_location_stage(orig_xy, working_syn, n_outliers, closest_threshold,
-                                           plausible_deniability_kappa, plausible_deniability_beta,
-                                           exact_adatrace, show_progress_inner)
+    location_summary = _run_location_stage(
+        pd_orig_xy, working_syn, n_outliers, closest_threshold,
+        plausible_deniability_kappa, plausible_deniability_beta,
+        exact_adatrace, show_progress_inner
+    )
+
     stages.append(location_summary)
     if mutate_like_java_between_stages:
         failed = location_summary["failed_indices_unique"]
@@ -321,6 +357,9 @@ def outlier_leakage_score_only(
             "closest_threshold": closest_threshold,
             "plausible_deniability_kappa": plausible_deniability_kappa,
             "plausible_deniability_beta": plausible_deniability_beta,
+            "plausible_deniability_sample_size": plausible_deniability_sample_size,
+            "plausible_deniability_actual_sample_size": len(pd_orig_xy),
+            "random_state": random_state,
             "exact_adatrace": exact_adatrace,
             "mutate_like_java_between_stages": mutate_like_java_between_stages,
         },

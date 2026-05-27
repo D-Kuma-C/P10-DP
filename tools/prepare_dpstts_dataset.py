@@ -2,9 +2,21 @@ from pathlib import Path
 from datetime import datetime
 import argparse
 import shutil
+from datetime import datetime
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+
+
+def normalize_timestamp_to_fixed_date(timestamp: str, fixed_date: str = "1900-01-01") -> str:
+    """
+    Keeps hour/minute/second, but replaces the calendar date.
+
+    Example:
+        2013-07-01 14:29:21 -> 1900-01-01 14:29:21
+    """
+    dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+    return f"{fixed_date} {dt.strftime('%H:%M:%S')}"
 
 
 def find_default_dpstts_dir() -> Path:
@@ -109,7 +121,7 @@ def parse_dat_file(input_file: Path):
     return trajectories
 
 
-def write_dpstts_raw_dat(trajectories, output_file: Path):
+def write_dpstts_raw_dat(trajectories, output_file: Path, normalize_dates: bool = True):
     """
     Writes a cleaned DP-STTS raw file using the same .dat structure.
 
@@ -123,17 +135,42 @@ def write_dpstts_raw_dat(trajectories, output_file: Path):
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     with output_file.open("w", encoding="utf-8") as f:
-        for new_id, traj in enumerate(trajectories):
+        new_id = 0
+
+        for traj in trajectories:
+            point_strings = []
+            previous_dt = None
+
+            for p in traj["points"]:
+                timestamp = p["timestamp"]
+
+                if normalize_dates:
+                    timestamp = normalize_timestamp_to_fixed_date(
+                        timestamp,
+                        fixed_date="1900-01-01",
+                    )
+
+                dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+
+                # Skip points that move backwards in normalized time.
+                if previous_dt is not None and dt <= previous_dt:
+                    continue
+
+                point_strings.append(
+                    f"{p['lon']},{p['lat']},{timestamp}"
+                )
+
+                previous_dt = dt
+
+            if len(point_strings) < 2:
+                continue
+
             f.write(f"#{new_id}:\n")
             f.write(">0:")
-
-            point_strings = [
-                f"{p['lon']},{p['lat']},{p['timestamp']}"
-                for p in traj["points"]
-            ]
-
             f.write(";".join(point_strings))
             f.write(";\n")
+
+            new_id += 1
 
 
 def infer_bounds(trajectories):
@@ -177,17 +214,40 @@ def apply_boundary_padding(lon_min, lon_max, lat_min, lat_max, padding_ratio: fl
     )
 
 
-def infer_time_range(trajectories):
-    timestamps = []
+def infer_time_range(trajectories, fixed_date: str = "1900-01-01"):
+    """
+    Infer DP-STTS time range from trajectory start and end times only.
+
+    start_time = minimum time-of-day of the first point in each trajectory
+    end_time   = maximum time-of-day of the last point in each trajectory
+
+    Dates are normalized to fixed_date.
+    """
+    start_times = []
+    end_times = []
 
     for traj in trajectories:
-        for p in traj["points"]:
-            timestamps.append(parse_timestamp(p["timestamp"]))
+        points = traj["points"]
 
-    if not timestamps:
-        raise ValueError("No valid timestamps found.")
+        if not points:
+            continue
 
-    return min(timestamps), max(timestamps)
+        start_dt = parse_timestamp(points[0]["timestamp"])
+        end_dt = parse_timestamp(points[-1]["timestamp"])
+
+        start_times.append(start_dt.time())
+        end_times.append(end_dt.time())
+
+    if not start_times or not end_times:
+        raise ValueError("No valid trajectory start/end timestamps found.")
+
+    min_start_time = min(start_times)
+    max_end_time = max(end_times)
+
+    return (
+        datetime.strptime(f"{fixed_date} {min_start_time}", "%Y-%m-%d %H:%M:%S"),
+        datetime.strptime(f"{fixed_date} {max_end_time}", "%Y-%m-%d %H:%M:%S"),
+    )
 
 
 def write_boundary_file(parameters_dir: Path, lon_min, lon_max, lat_min, lat_max):
@@ -224,23 +284,35 @@ def write_cell_size_file(parameters_dir: Path, cell_h: int, cell_w: int):
     print(f"  cellCount = {cell_h * cell_w}")
 
 
-def write_time_file(parameters_dir: Path, start_time: datetime, end_time: datetime):
+def write_time_file(
+    parameters_dir: Path,
+    start_time: datetime,
+    end_time: datetime,
+    full_day_time: bool = False,
+    fixed_date: str = "1900-01-01",
+):
     """
-    DP-STTS parameters.py reads the time part using:
+    DP-STTS should use a single-day time window.
 
-        datetime.strptime(start[1], '%H:%M:%S')
-
-    So full datetime lines are okay.
+    Therefore time.txt must use the same fixed date.
     """
     time_file = parameters_dir / "time.txt"
 
+    if full_day_time:
+        start_text = f"{fixed_date} 00:00:00"
+        end_text = f"{fixed_date} 23:59:59"
+    else:
+        start_text = f"{fixed_date} {start_time.strftime('%H:%M:%S')}"
+        end_text = f"{fixed_date} {end_time.strftime('%H:%M:%S')}"
+
     with time_file.open("w", encoding="utf-8") as f:
-        f.write(start_time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
-        f.write(end_time.strftime("%Y-%m-%d %H:%M:%S") + "\n")
+        f.write(start_text + "\n")
+        f.write(end_text + "\n")
 
     print(f"Wrote time range: {time_file}")
-    print(f"  start = {start_time}")
-    print(f"  end   = {end_time}")
+    print(f"  start = {start_text}")
+    print(f"  end   = {end_text}")
+
 
 
 def write_time_step_file(parameters_dir: Path, time_step_minutes: int):
@@ -356,7 +428,7 @@ def prepare_dpstts_dataset(
     # DP-STTS comments mention Original.txt.
     original_file = raw_data_dir / "Original.txt"
 
-    write_dpstts_raw_dat(trajectories, original_file)
+    write_dpstts_raw_dat(trajectories, original_file, normalize_dates=True)
 
     print(f"Wrote raw DP-STTS file: {original_file}")
 
@@ -369,11 +441,18 @@ def prepare_dpstts_dataset(
         boundary_padding_ratio,
     )
 
-    start_time, end_time = infer_time_range(trajectories)
-
     if force_full_day_time:
-        start_time = start_time.replace(hour=0, minute=0, second=0)
-        end_time = end_time.replace(hour=23, minute=59, second=59)
+        start_time = parse_timestamp("1900-01-01 00:00:00")
+        end_time = parse_timestamp("1900-01-01 23:59:59")
+    else:
+        start_time, end_time = infer_time_range(
+            trajectories,
+            fixed_date="1900-01-01",
+        )
+
+    print(f"force_full_day_time = {force_full_day_time}")
+    print(f"DP-STTS start_time  = {start_time}")
+    print(f"DP-STTS end_time    = {end_time}")
 
     write_boundary_file(
         parameters_dir=parameters_dir,
@@ -393,6 +472,8 @@ def prepare_dpstts_dataset(
         parameters_dir=parameters_dir,
         start_time=start_time,
         end_time=end_time,
+        full_day_time=False,
+        fixed_date="1900-01-01",
     )
 
     write_time_step_file(
