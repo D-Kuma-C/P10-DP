@@ -5,9 +5,9 @@ PORTO = [41.15, -8.62]
 
 MAX_TRAJECTORIES = 20000
 
-m = folium.Map(location=PORTO, zoom_start=11, tiles="CartoDB positron", prefer_canvas=True)
+m = folium.Map(location=BEIJING, zoom_start=11, tiles="CartoDB VoyagerNoLabels", prefer_canvas=True)
 
-def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
+def plot_file(file_path, color="blue", max_traj=None):
     
 
     traj = []
@@ -18,7 +18,7 @@ def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
 
             if line.startswith("#"):
                 if traj:
-                    folium.PolyLine(traj, color=color, weight=1, opacity=0.2).add_to(m)
+                    folium.PolyLine(traj, color=color, weight=2, opacity=1).add_to(m)
                     traj = []
                     count += 1
                     if max_traj and (count > max_traj):
@@ -37,13 +37,13 @@ def plot_file(file_path, color="blue", max_traj=None, tiles="CartoDB positron"):
             folium.PolyLine(
                 traj,
                 color=color,
-                weight=1,
-                opacity=0.2
+                weight=2,
+                opacity=1
             ).add_to(m)
     
     print("Trajectory count: ", count)
-    
+    # virk?
 
-plot_file(r"/input/dpstar_synthetic/eps_0.1/test.dat", max_traj=MAX_TRAJECTORIES, color="blue")
+plot_file(r"C:\Git\P10-DP\data\testdata.dat", max_traj=MAX_TRAJECTORIES, color="blue")
 
-m.save(r"C:\Users\test\Desktop\Uni\P10-DP\output\testing2.html")
+m.save(r"C:\Git\P10-DP\map-output\example.html")

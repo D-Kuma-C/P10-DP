@@ -58,12 +58,13 @@ next_edge_id = 0
 
 time_tag = "_time" if INCLUDE_TIME else ""
 mapmatch_tag = "-raw" if not ENABLE_MAP_MATCHING else ""
+file_tag = "all" if not START_FILE_INDEX or not END_FILE_INDEX else f"{END_FILE_INDEX-START_FILE_INDEX}"
 current_time = datetime.datetime.now().strftime("%m%d_%H%M%S")
 
 output_name = (
     f"{mapmatch_tag}"
     f"{time_tag}"
-    f"_files-{END_FILE_INDEX-START_FILE_INDEX}"
+    f"_files-{file_tag}"
     f"{current_time}"
     f"_p-{MIN_POINTS}"
     f"_d-{MAX_DISTANCE}"
@@ -84,6 +85,11 @@ TRAJECTORY_SEGMENTS_FILE = CONFIG["dataset"]["tdrive"]["segment_file_location"] 
 def load_files(start, end):
     files = [f for f in os.listdir(INPUT_FOLDER) if f.endswith(".txt")]
     files.sort(key=lambda x: int(x.split(".")[0]))
+
+    if not start:
+        start = 0
+    if not end:
+        end = 10357
 
     with open(OUTPUT_FILE, "w") as out_f:
 

@@ -197,12 +197,19 @@ def interpolate_timestamps(geometry, tracepoints, original_times):
     result_times = [None] * len(geometry)
 
     # Map each valid tracepoint to its timestamp
-    time_idx = 0
-    for tp in tracepoints:
+    for i, tp in enumerate(tracepoints):
         if tp is None:
             continue
-        result_times[tp["waypoint_index"]] = original_times[time_idx]
-        time_idx += 1
+
+        if i >= len(original_times):
+            continue
+
+        geom_idx = tp["waypoint_index"]
+
+        if geom_idx < 0 or geom_idx >= len(result_times):
+            continue
+
+        result_times[geom_idx] = original_times[i]
 
     # Interpolate missing timestamps
     last_known = None
@@ -238,7 +245,11 @@ def process_with_map_matching(points, timestamps=None):
     all_times = []
     all_segment_ids = []
 
-    pairs = list(zip(points, timestamps)) if timestamps else [(p, None) for p in points]
+    pairs = (
+        list(zip(points, timestamps))
+        if timestamps is not None
+        else [(p, None) for p in points]
+    )
 
     chunks = [pairs[i:i+MAX_MATCH_POINTS] for i in range(0, len(pairs), MAX_MATCH_POINTS)]
 
