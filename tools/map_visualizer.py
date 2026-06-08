@@ -42,7 +42,7 @@ def plot_file(file_path, color="blue", max_traj=None):
             ).add_to(m)
     
     print("Trajectory count: ", count)
-    # virk?
+    
 
 plot_file(r"C:\Git\P10-DP\data\testdata.dat", max_traj=MAX_TRAJECTORIES, color="blue")
 

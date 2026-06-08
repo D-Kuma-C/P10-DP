@@ -354,6 +354,7 @@ def load_data():
             traj_segments_out.write("traj_id,order,segment_id\n")
 
             for index, user in enumerate(os.listdir(INPUT_FOLDER)):
+                # Only select trajectories within a range
                 if START_USER_INDEX and index < START_USER_INDEX:
                     continue
                 if END_USER_INDEX and index >= END_USER_INDEX:
@@ -392,7 +393,7 @@ def load_data():
                         parts = line.strip().split(",")
 
                         if len(parts) < 7:
-                            print("how the fuck did this happen?")
+                            print("Error, too many columns")
                             continue
 
                         try:
@@ -401,7 +402,8 @@ def load_data():
                             timestamp = datetime.datetime.strptime(parts[5] + " " + parts[6],"%Y-%m-%d %H:%M:%S")
                         except:
                             continue
-
+                        
+                        # Data cleaning
                         if not(START_DATE <= timestamp <= END_DATE):
                             continue
                         
@@ -417,7 +419,8 @@ def load_data():
                             dt = (timestamp - prev_time).total_seconds()
                             if dt > 0 and compute_speed(prev_point, current_point, dt) > MAX_SPEED:
                                 continue
-
+                        
+                        # Split trajectories
                         if (prev_time and (timestamp - prev_time).total_seconds() > MAX_TIME) or \
                             (prev_point and (distance(prev_point, current_point) > MAX_DISTANCE)):
                             
@@ -441,6 +444,7 @@ def load_data():
                         prev_point = current_point
                         prev_time = timestamp
 
+                    # Complete trajectory
                     traj_id = finalize_trajectory(
                         out,
                         traj_segments_out,

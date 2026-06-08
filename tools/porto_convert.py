@@ -394,7 +394,8 @@ def load_data():
                 for coord in polyline:
                     lon, lat = coord
                     current_point = (lon, lat)
-
+                    
+                    # Remove invalid points
                     if prev_point and is_noise(prev_point, current_point):
                         point_count += 1
                         continue
