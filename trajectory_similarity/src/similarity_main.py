@@ -87,7 +87,7 @@ if __name__ == "__main__":
         "LORS": LORS(),
     }
 
-    if dp_model_normalized == "dp_stts":
+    if dp_model_normalized == "dpstts":
         measures["TP"] = TP()
     else:
         print(f"Skipping TP for {args.dp_model}, because synthetic trajectories do not contain reliable timestamps.")

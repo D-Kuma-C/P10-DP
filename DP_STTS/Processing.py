@@ -319,9 +319,21 @@ def interpolation(dataset):
                 if tail.cellIndex == -1 or tail.timeIndex == -1:
                     continue
 
+                # tail.next = None
+                # head.next = tail
+                # PointInsertion(preLoc, head, tail)
+
                 tail.next = None
                 head.next = tail
-                PointInsertion(preLoc, head, tail)
+
+                same_cell = head.cellIndex == tail.cellIndex
+                same_time = head.timeIndex == tail.timeIndex
+                non_increasing_time = tail.time <= head.time
+
+                if not (same_cell and same_time) and not non_increasing_time:
+                    PointInsertion(preLoc, head, tail)
+
+                p = head
 
                 p = head
                 while p:

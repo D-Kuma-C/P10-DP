@@ -217,6 +217,7 @@ import json
 import math
 import shutil
 import tempfile
+from datetime import datetime, timedelta
 
 import requests
 
@@ -280,6 +281,49 @@ def coord_key(lon, lat, precision=7):
     return f"{round(float(lon), precision)},{round(float(lat), precision)}"
 
 
+def parse_dt(timestamp):
+    if timestamp is None:
+        return None
+    return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+
+
+def interpolate_timestamps_for_matched_points(original_points, matched_points):
+    """
+    Assigns timestamps to OSRM matched geometry points.
+
+    If the original trajectory has timestamps, timestamps are linearly
+    interpolated between the first and last original timestamp.
+    """
+    if not matched_points:
+        return []
+
+    timestamps = [p[2] for p in original_points if len(p) >= 3 and p[2] is not None]
+
+    if not timestamps:
+        return [None for _ in matched_points]
+
+    start_dt = parse_dt(timestamps[0])
+    end_dt = parse_dt(timestamps[-1])
+
+    if start_dt is None or end_dt is None:
+        return [None for _ in matched_points]
+
+    if len(matched_points) == 1 or end_dt <= start_dt:
+        return [start_dt.strftime("%Y-%m-%d %H:%M:%S") for _ in matched_points]
+
+    total_seconds = (end_dt - start_dt).total_seconds()
+
+    interpolated = []
+
+    for idx in range(len(matched_points)):
+        ratio = idx / max(len(matched_points) - 1, 1)
+        dt = start_dt + timedelta(seconds=round(total_seconds * ratio))
+        interpolated.append(dt.strftime("%Y-%m-%d %H:%M:%S"))
+
+    return interpolated
+
+
+
 def edge_key_from_coords(p1, p2):
     """
     Stable directed edge key based on OSRM route geometry coordinates.
@@ -292,9 +336,6 @@ def parse_point(raw_point):
     Supports:
         lon,lat
         lon,lat,timestamp
-
-    Timestamp is ignored for map-matching output because OSRM route geometry
-    creates new matched points.
     """
     parts = [p.strip() for p in raw_point.split(",")]
 
@@ -303,8 +344,9 @@ def parse_point(raw_point):
 
     lon = float(parts[0])
     lat = float(parts[1])
+    timestamp = parts[2] if len(parts) >= 3 else None
 
-    return lon, lat
+    return lon, lat, timestamp
 
 
 def parse_input(input_file):
@@ -351,7 +393,7 @@ def route_osrm(points, osrm_url, timeout=20):
     if len(points) < 2:
         return None
 
-    coords = ";".join(f"{lon},{lat}" for lon, lat in points)
+    coords = ";".join(f"{p[0]},{p[1]}" for p in points)
 
     try:
         response = requests.get(
@@ -597,7 +639,21 @@ def process_trajectories(
                 skipped_trajectories += 1
                 continue
 
-            point_text = ";".join(f"{lon},{lat}" for lon, lat in matched_points)
+            matched_timestamps = interpolate_timestamps_for_matched_points(
+                original_points=traj_points,
+                matched_points=matched_points,
+            )
+
+            if any(ts is not None for ts in matched_timestamps):
+                point_text = ";".join(
+                    f"{lon},{lat},{ts}"
+                    for (lon, lat), ts in zip(matched_points, matched_timestamps)
+                )
+            else:
+                point_text = ";".join(
+                    f"{lon},{lat}"
+                    for lon, lat in matched_points
+                )
 
             out.write(f"#{traj_id}\n")
             out.write(f">0:{point_text};\n")
